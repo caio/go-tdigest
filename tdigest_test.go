@@ -7,6 +7,7 @@ import (
 )
 
 func TestCentroid(t *testing.T) {
+	t.Parallel()
 
 	c1 := Centroid{mean: 0.4, count: 1}
 	c2 := Centroid{mean: 0.4, count: 1}
@@ -33,6 +34,7 @@ func TestCentroid(t *testing.T) {
 }
 
 func TestCeilingAndFloor(t *testing.T) {
+	t.Parallel()
 	tdigest := New(100)
 
 	ceil, floor := tdigest.ceilingAndFloorItems(Centroid{1, 1})
@@ -103,6 +105,7 @@ func TestCeilingAndFloor(t *testing.T) {
 }
 
 func TestTInternals(t *testing.T) {
+	t.Parallel()
 
 	tdigest := New(100)
 
@@ -136,6 +139,7 @@ func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *test
 }
 
 func TestUniformDistribution(t *testing.T) {
+	t.Parallel()
 	tdigest := New(10)
 
 	for i := 0; i < 10000; i++ {
@@ -162,6 +166,7 @@ func TestSequentialInsertion(t *testing.T) {
 }
 
 func TestIntegers(t *testing.T) {
+	t.Parallel()
 	tdigest := New(100)
 
 	tdigest.Update(1, 1)
