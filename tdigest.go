@@ -1,7 +1,6 @@
 package tdigest
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
@@ -160,12 +159,7 @@ func (t *TDigest) Compress() {
 }
 
 func (t TDigest) String() string {
-	var buffer bytes.Buffer
-	for c := range t.summary.Iter() {
-		buffer.WriteString(c.(Centroid).String())
-		buffer.WriteString(",")
-	}
-	return fmt.Sprintf("TDigest<K=%d, weight=%.1f, centroids=[%s]>", t.compression, t.count, buffer.String())
+	return fmt.Sprintf("TD<compression=%d, count=%.1f, centroids=%d>", t.compression, t.count, t.summary.Len())
 }
 
 func (t *TDigest) updateCentroid(c Centroid, mean float64, weight float64) {
