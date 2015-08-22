@@ -151,6 +151,16 @@ func TestUniformDistribution(t *testing.T) {
 	assertDifferenceSmallerThan(tdigest, 0.999, 0.001, t)
 }
 
+func TestSequentialInsertion(t *testing.T) {
+	t.Parallel()
+	tdigest := New(10)
+
+	// FIXME Timeout after X seconds of something?
+	for i := 0; i < 10000; i++ {
+		tdigest.Update(float64(i), 1)
+	}
+}
+
 func TestIntegers(t *testing.T) {
 	tdigest := New(100)
 

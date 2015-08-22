@@ -134,13 +134,28 @@ func (t *TDigest) Update(value float64, weight float64) {
 	}
 
 	if float64(t.summary.Len()) > float64(20*t.compression) {
-		// FIXME t.compress()
+		t.Compress()
 	}
 }
 
 func (t *TDigest) Compress() {
 	if t.summary.Len() <= 1 {
 		return
+	}
+
+	oldTree := t.summary
+	t.summary = avltree.New(compareCentroids, 0)
+
+	nodes := oldTree.Data()
+	for i := len(nodes) - 1; i > 0; i-- {
+		other := rand.Intn(i + 1)
+		tmp := nodes[other]
+		nodes[other] = nodes[i]
+		nodes[i] = tmp
+	}
+
+	for _, item := range nodes {
+		t.Update(item.(Centroid).mean, item.(Centroid).count)
 	}
 }
 
