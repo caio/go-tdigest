@@ -146,15 +146,19 @@ func (t *TDigest) Compress() {
 	t.summary = avltree.New(compareCentroids, 0)
 
 	nodes := oldTree.Data()
-	for i := len(nodes) - 1; i > 0; i-- {
-		other := rand.Intn(i + 1)
-		tmp := nodes[other]
-		nodes[other] = nodes[i]
-		nodes[i] = tmp
-	}
+	shuffle(nodes)
 
 	for _, item := range nodes {
 		t.Update(item.(Centroid).mean, item.(Centroid).count)
+	}
+}
+
+func shuffle(data []interface{}) {
+	for i := len(data) - 1; i > 1; i-- {
+		other := rand.Intn(i + 1)
+		tmp := data[other]
+		data[other] = data[i]
+		data[i] = tmp
 	}
 }
 
