@@ -6,6 +6,8 @@ quantile approximation.
 This package provides a very crude implementation of Ted Dunning's t-digest
 data structure in Go.
 
+[![Build Status](https://travis-ci.org/caio/go-tdigest.svg?branch=master)](https://travis-ci.org/caio/go-tdigest)
+
 ## Installation
 
     go get github.com/caio/go-tdigest
