@@ -180,13 +180,15 @@ func (t TDigest) String() string {
 }
 
 func (t *TDigest) updateCentroid(c Centroid, mean float64, weight float64) {
-	if t.summary.Find(c) == nil {
+	removed := t.summary.Remove(c)
+
+	if removed == nil {
 		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %s. %s", c, t))
 	}
 
-	t.summary.Remove(c)
-	c.Update(mean, weight)
-	t.addCentroid(c)
+	updated := removed.(Centroid)
+	updated.Update(mean, weight)
+	t.addCentroid(updated)
 }
 
 func (t *TDigest) threshold(q float64) float64 {
