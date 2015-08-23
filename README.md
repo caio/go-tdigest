@@ -23,6 +23,12 @@ data structure in Go.
 
     fmt.Printf("p(.5) = %.6f\n", t.Percentile(0.5))
 
+## Roadmap
+
+1. Add support for merging digests (else, what's the point?)
+2. Implement serialization. Maybe compatible with the reference implementation
+3. ???
+
 ## Disclaimer
 
 I've written this solely with the purpose of understanding how the
