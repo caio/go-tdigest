@@ -10,20 +10,20 @@ import (
 
 type Centroid struct {
 	mean  float64
-	count float64
+	count uint
 }
 
 func (c Centroid) String() string {
-	return fmt.Sprintf("C<m=%.6f,c=%.1f>", c.mean, c.count)
+	return fmt.Sprintf("C<m=%.6f,c=%d>", c.mean, c.count)
 }
 
 func (c Centroid) Equals(other Centroid) bool {
 	return c.mean == other.mean && c.count == other.count
 }
 
-func (c *Centroid) Update(x float64, weight float64) {
+func (c *Centroid) Update(x float64, weight uint) {
 	c.count += weight
-	c.mean += weight * (x - c.mean) / c.count
+	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
 }
 
 var InvalidCentroid Centroid = Centroid{mean: 0.0, count: 0}
@@ -80,7 +80,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 	i := 0
 
 	for item := range t.summary.Iter() {
-		k := item.(Centroid).count
+		k := float64(item.(Centroid).count)
 
 		if p < total+k {
 			if i == 0 || i+1 == t.summary.Len() {
@@ -98,8 +98,8 @@ func (t *TDigest) Percentile(p float64) float64 {
 	return t.summary.At(t.summary.Len() - 1).(Centroid).mean
 }
 
-func (t *TDigest) Update(value float64, weight float64) {
-	t.count += weight
+func (t *TDigest) Update(value float64, weight uint) {
+	t.count += float64(weight)
 
 	newCentroid := Centroid{value, weight}
 
@@ -122,8 +122,8 @@ func (t *TDigest) Update(value float64, weight float64) {
 		}
 
 		delta_w := math.Min(t.threshold(quantile)-float64(chosen.count), float64(weight))
-		t.updateCentroid(chosen, value, delta_w)
-		weight -= delta_w
+		t.updateCentroid(chosen, value, uint(delta_w))
+		weight -= uint(delta_w)
 
 		candidates = append(candidates[:j], candidates[j+1:]...)
 	}
@@ -179,16 +179,14 @@ func (t TDigest) String() string {
 	return fmt.Sprintf("TD<compression=%d, count=%.1f, centroids=%d>", t.compression, t.count, t.summary.Len())
 }
 
-func (t *TDigest) updateCentroid(c Centroid, mean float64, weight float64) {
-	removed := t.summary.Remove(c)
-
-	if removed == nil {
+func (t *TDigest) updateCentroid(c Centroid, mean float64, weight uint) {
+	if t.summary.Find(c) == nil {
 		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %s. %s", c, t))
 	}
 
-	updated := removed.(Centroid)
-	updated.Update(mean, weight)
-	t.addCentroid(updated)
+	t.summary.Remove(c)
+	c.Update(mean, weight)
+	t.addCentroid(c)
 }
 
 func (t *TDigest) threshold(q float64) float64 {
@@ -196,13 +194,13 @@ func (t *TDigest) threshold(q float64) float64 {
 }
 
 func (t *TDigest) computeCentroidQuantile(c Centroid) float64 {
-	var cumSum float64 = 0
+	var cumSum uint = 0
 	channel := t.exclusiveSliceUntilMean(c)
 	for item := range channel {
 		cumSum += item.count
 	}
 
-	return (c.count/2.0 + cumSum) / t.count
+	return (float64(c.count)/2.0 + float64(cumSum)) / t.count
 }
 
 func (t *TDigest) addCentroid(c Centroid) {

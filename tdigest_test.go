@@ -189,7 +189,7 @@ func TestIntegers(t *testing.T) {
 		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Percentile(0.5))
 	}
 
-	var tot float64 = 0
+	var tot uint = 0
 	for i := range tdigest.summary.Iter() {
 		tot += i.(Centroid).count
 	}
