@@ -54,11 +54,11 @@ func centroidLessOrEquals(p, q interface{}) bool {
 
 type TDigest struct {
 	summary     *avltree.Tree
-	compression uint
+	compression float64
 	count       uint
 }
 
-func New(compression uint) *TDigest {
+func New(compression float64) *TDigest {
 	tree := avltree.New(compareCentroids, 0)
 	tdigest := TDigest{compression: compression, summary: tree, count: 0}
 	return &tdigest
@@ -132,7 +132,7 @@ func (t *TDigest) Update(value float64, weight uint) {
 		t.addCentroid(Centroid{value, weight})
 	}
 
-	if float64(t.summary.Len()) > float64(20*t.compression) {
+	if float64(t.summary.Len()) > 20*t.compression {
 		t.Compress()
 	}
 }
@@ -176,7 +176,7 @@ func (t *TDigest) Merge(other *TDigest) {
 }
 
 func (t TDigest) String() string {
-	return fmt.Sprintf("TD<compression=%d, count=%d, centroids=%d>", t.compression, t.count, t.summary.Len())
+	return fmt.Sprintf("TD<compression=%.2f, count=%d, centroids=%d>", t.compression, t.count, t.summary.Len())
 }
 
 func (t *TDigest) updateCentroid(c Centroid, mean float64, weight uint) {
@@ -190,7 +190,7 @@ func (t *TDigest) updateCentroid(c Centroid, mean float64, weight uint) {
 }
 
 func (t *TDigest) threshold(q float64) float64 {
-	return (4 * float64(t.count) * q * (1 - q)) / float64(t.compression)
+	return (4 * float64(t.count) * q * (1 - q)) / t.compression
 }
 
 func (t *TDigest) computeCentroidQuantile(c Centroid) float64 {
