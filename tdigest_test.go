@@ -3,6 +3,7 @@ package tdigest
 import (
 	"math"
 	"math/rand"
+	"sort"
 	"testing"
 )
 
@@ -140,6 +141,7 @@ func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *test
 
 func TestUniformDistribution(t *testing.T) {
 	t.Parallel()
+
 	tdigest := New(10)
 
 	for i := 0; i < 10000; i++ {
@@ -194,5 +196,75 @@ func TestIntegers(t *testing.T) {
 
 	if tot != 9 {
 		t.Errorf("Expected the centroid count to be 9, Got %.2f instead", tot)
+	}
+}
+
+func quantile(q float64, data []float64) float64 {
+	if len(data) == 0 {
+		return math.NaN()
+	}
+
+	if q == 1 || len(data) == 1 {
+		return data[len(data)-1]
+	}
+
+	index := q * (float64(len(data)) - 1)
+
+	return data[int(index)+1]*(index-float64(int(index))) + data[int(index)]*(float64(int(index)+1)-index)
+}
+
+func TestMerge(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skipf("Skipping merge test. Short flag is on")
+	}
+
+	const numItems = 10000
+	const numSubs = 5
+
+	data := make([]float64, numItems)
+	var subs [numSubs]*TDigest
+
+	dist1 := New(10)
+
+	for i := 0; i < numSubs; i++ {
+		subs[i] = New(10)
+	}
+
+	for i := 0; i < numItems; i++ {
+		num := rand.Float64()
+
+		data[i] = num
+		dist1.Update(num, 1)
+		for j := 0; j < numSubs; j++ {
+			subs[j].Update(num, 1)
+		}
+	}
+
+	dist2 := New(10)
+	for i := 0; i < numSubs; i++ {
+		dist2.Merge(subs[i])
+	}
+
+	// Merge empty. Should be no-op
+	dist2.Merge(New(10))
+
+	sort.Float64s(data)
+
+	for _, p := range []float64{0.001, 0.01, 0.1, 0.2, 0.3, 0.5} {
+		q := quantile(p, data)
+		p1 := dist1.Percentile(p)
+		p2 := dist2.Percentile(p)
+
+		e1 := math.Abs(p1 - q)
+		e2 := math.Abs(p1 - q)
+
+		if e2/p >= 0.3 {
+			t.Errorf("Relative error for %f above threshold. q=%f p1=%f p2=%f e1=%f e2=%f", p, q, p1, p2, e1, e2)
+		}
+		if e2 >= 0.015 {
+			t.Errorf("Absolute error for %f above threshold. q=%f p1=%f p2=%f e1=%f e2=%f", p, q, p1, p2, e1, e2)
+		}
 	}
 }

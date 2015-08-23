@@ -162,6 +162,19 @@ func shuffle(data []interface{}) {
 	}
 }
 
+func (t *TDigest) Merge(other *TDigest) {
+	if other.summary.Len() == 0 {
+		return
+	}
+
+	nodes := other.summary.Data()
+	shuffle(nodes)
+
+	for _, item := range nodes {
+		t.Update(item.(Centroid).mean, item.(Centroid).count)
+	}
+}
+
 func (t TDigest) String() string {
 	return fmt.Sprintf("TD<compression=%d, count=%.1f, centroids=%d>", t.compression, t.count, t.summary.Len())
 }
