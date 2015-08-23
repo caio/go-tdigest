@@ -1,6 +1,7 @@
 package tdigest
 
 import (
+	"bytes"
 	"math"
 	"math/rand"
 	"sort"
@@ -266,5 +267,39 @@ func TestMerge(t *testing.T) {
 		if e2 >= 0.015 {
 			t.Errorf("Absolute error for %f above threshold. q=%f p1=%f p2=%f e1=%f e2=%f", p, q, p1, p2, e1, e2)
 		}
+	}
+}
+
+func TestEncodeDecode(t *testing.T) {
+	testUints := []uint32{0, 10, 100, 1000, 10000, 65535, 2147483647}
+	buf := new(bytes.Buffer)
+
+	for _, i := range testUints {
+		encodeUint(buf, i)
+	}
+
+	readBuf := bytes.NewReader(buf.Bytes())
+	for _, i := range testUints {
+		j := decodeUint(readBuf)
+		if i != j {
+			t.Errorf("Basic encode/decode failed. Got %d, wanted %d", j, i)
+		}
+	}
+}
+
+func TestSerialization(t *testing.T) {
+	// NOTE Using a high compression value and adding few items
+	//      so we don't end up compressing automatically
+	t1 := New(100)
+	for i := 0; i < 100; i++ {
+		t1.Update(rand.Float64(), 1)
+	}
+
+	serialized := t1.AsBytes()
+
+	t2 := FromBytes(bytes.NewReader(serialized))
+
+	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
+		t.Errorf("Deserialized to something different. t1=%s t2=%s serialized=%x", t1, t2, serialized)
 	}
 }
