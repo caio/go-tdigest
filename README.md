@@ -25,7 +25,7 @@ data structure in Go.
 
 ## Roadmap
 
-1. Add support for merging digests (else, what's the point?)
+1. ~~Add support for merging digests (else, what's the point?)~~
 2. Implement serialization. Maybe compatible with the reference implementation
 3. ???
 
