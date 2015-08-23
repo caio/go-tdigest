@@ -195,7 +195,7 @@ func TestIntegers(t *testing.T) {
 	}
 
 	if tot != 9 {
-		t.Errorf("Expected the centroid count to be 9, Got %.2f instead", tot)
+		t.Errorf("Expected the centroid count to be 9, Got %d instead", tot)
 	}
 }
 
