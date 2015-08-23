@@ -25,8 +25,8 @@ data structure in Go.
 
 ## Disclaimer
 
-I've written this solelly with the purpose of understanding how the
-datastructure works, it hasn't been throughly verified nor have I bothered with
+I've written this solely with the purpose of understanding how the
+data-structure works, it hasn't been throughly verified nor have I bothered with
 optimizations for now.
 
 ## References
@@ -34,7 +34,7 @@ optimizations for now.
 This is a very simple port of the [reference][1] implementation with some
 ideas borrowed from the [python version][2]. If you wanna get a quick grasp of
 how it works and why it's useful, [this video and companion article is pretty
-helpful].
+helpful][3].
 
 [1]: https://github.com/tdunning/t-digest
 [2]: https://github.com/CamDavidsonPilon/tdigest
