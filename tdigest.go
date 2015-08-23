@@ -10,7 +10,7 @@ import (
 
 type Centroid struct {
 	mean  float64
-	count uint
+	count uint32
 }
 
 func (c Centroid) String() string {
@@ -21,7 +21,7 @@ func (c Centroid) Equals(other Centroid) bool {
 	return c.mean == other.mean && c.count == other.count
 }
 
-func (c *Centroid) Update(x float64, weight uint) {
+func (c *Centroid) Update(x float64, weight uint32) {
 	c.count += weight
 	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
 }
@@ -55,7 +55,7 @@ func centroidLessOrEquals(p, q interface{}) bool {
 type TDigest struct {
 	summary     *avltree.Tree
 	compression float64
-	count       uint
+	count       uint32
 }
 
 func New(compression float64) *TDigest {
@@ -98,7 +98,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 	return t.summary.At(t.summary.Len() - 1).(Centroid).mean
 }
 
-func (t *TDigest) Update(value float64, weight uint) {
+func (t *TDigest) Update(value float64, weight uint32) {
 	t.count += weight
 
 	newCentroid := Centroid{value, weight}
@@ -122,8 +122,8 @@ func (t *TDigest) Update(value float64, weight uint) {
 		}
 
 		delta_w := math.Min(t.threshold(quantile)-float64(chosen.count), float64(weight))
-		t.updateCentroid(chosen, value, uint(delta_w))
-		weight -= uint(delta_w)
+		t.updateCentroid(chosen, value, uint32(delta_w))
+		weight -= uint32(delta_w)
 
 		candidates = append(candidates[:j], candidates[j+1:]...)
 	}
@@ -179,7 +179,7 @@ func (t TDigest) String() string {
 	return fmt.Sprintf("TD<compression=%.2f, count=%d, centroids=%d>", t.compression, t.count, t.summary.Len())
 }
 
-func (t *TDigest) updateCentroid(c Centroid, mean float64, weight uint) {
+func (t *TDigest) updateCentroid(c Centroid, mean float64, weight uint32) {
 	if t.summary.Find(c) == nil {
 		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %s. %s", c, t))
 	}
@@ -194,7 +194,7 @@ func (t *TDigest) threshold(q float64) float64 {
 }
 
 func (t *TDigest) computeCentroidQuantile(c Centroid) float64 {
-	var cumSum uint = 0
+	var cumSum uint32 = 0
 	channel := t.exclusiveSliceUntilMean(c)
 	for item := range channel {
 		cumSum += item.count
