@@ -280,7 +280,8 @@ func TestEncodeDecode(t *testing.T) {
 
 	readBuf := bytes.NewReader(buf.Bytes())
 	for _, i := range testUints {
-		j := decodeUint(readBuf)
+		j, _ := decodeUint(readBuf)
+
 		if i != j {
 			t.Errorf("Basic encode/decode failed. Got %d, wanted %d", j, i)
 		}
@@ -295,9 +296,9 @@ func TestSerialization(t *testing.T) {
 		t1.Update(rand.Float64(), 1)
 	}
 
-	serialized := t1.AsBytes()
+	serialized, _ := t1.AsBytes()
 
-	t2 := FromBytes(bytes.NewReader(serialized))
+	t2, _ := FromBytes(bytes.NewReader(serialized))
 
 	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
 		t.Errorf("Deserialized to something different. t1=%s t2=%s serialized=%x", t1, t2, serialized)
