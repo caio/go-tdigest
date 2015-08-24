@@ -78,23 +78,35 @@ func (t *TDigest) Percentile(p float64) float64 {
 	var total float64 = 0
 	i := 0
 
-	for item := range t.summary.IterInOrder() {
+	found := false
+	var result float64
+
+	t.summary.IterInOrderWith(func(item llrb.Item) bool {
 		k := float64(item.(Centroid).count)
 
 		if p < total+k {
 			if i == 0 || i+1 == t.summary.Len() {
-				return item.(Centroid).mean
+				result = item.(Centroid).mean
+				found = true
+				return false
 			}
 			succ, pred := t.successorAndPredecessorItems(item.(Centroid))
 			delta := (succ.mean - pred.mean) / 2
-			return item.(Centroid).mean + ((p-total)/k-0.5)*delta
+			result = item.(Centroid).mean + ((p-total)/k-0.5)*delta
+			found = true
+			return false
 		}
 
 		i++
 		total += k
-	}
+		return true
+	})
 
-	return t.summary.Max().mean
+	if found {
+		return result
+	} else {
+		return t.summary.Max().mean
+	}
 }
 
 func (t *TDigest) Update(value float64, weight uint32) {
