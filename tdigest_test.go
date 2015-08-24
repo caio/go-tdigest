@@ -222,7 +222,7 @@ func TestIntegers(t *testing.T) {
 	}
 
 	var tot uint32 = 0
-	for i := range tdigest.summary.IterInOrder() {
+	for i := range tdigest.summary.iterInOrder() {
 		tot += i.(Centroid).count
 	}
 

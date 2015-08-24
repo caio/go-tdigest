@@ -38,7 +38,7 @@ func (s *Summary) Add(c Centroid) {
 func (s Summary) Data() []Centroid {
 	data := make([]Centroid, s.tree.Len())
 	i := 0
-	for item := range s.IterInOrder() {
+	for item := range s.iterInOrder() {
 		data[i] = item.(Centroid)
 		i++
 	}
@@ -63,7 +63,7 @@ func (s *Summary) Delete(c Centroid) *Centroid {
 	return nil
 }
 
-func (s Summary) IterInOrder() <-chan interface{} {
+func (s Summary) iterInOrder() <-chan interface{} {
 	channel := make(chan interface{})
 
 	go func() {

@@ -257,7 +257,7 @@ func (t *TDigest) findNearestCentroids(c Centroid) []Centroid {
 
 func (t *TDigest) getSurroundingWith(c Centroid, cmp func(a, b interface{}) bool) (Centroid, Centroid) {
 	ceiling, floor := InvalidCentroid, InvalidCentroid
-	for item := range t.summary.IterInOrder() {
+	for item := range t.summary.iterInOrder() {
 		if ceiling == InvalidCentroid && cmp(c, item) {
 			ceiling = item.(Centroid)
 		}
