@@ -342,3 +342,22 @@ func TestSerialization(t *testing.T) {
 		t.Errorf("Deserialized to something different. t1=%s t2=%s serialized=%x", t1, t2, serialized)
 	}
 }
+
+func benchmarkUpdate(compression float64, b *testing.B) {
+	t := New(compression)
+	for n := 0; n < b.N; n++ {
+		t.Update(rand.Float64(), 1)
+	}
+}
+
+func BenchmarkUpdate1(b *testing.B) {
+	benchmarkUpdate(1, b)
+}
+
+func BenchmarkUpdate10(b *testing.B) {
+	benchmarkUpdate(10, b)
+}
+
+func BenchmarkUpdate100(b *testing.B) {
+	benchmarkUpdate(100, b)
+}
