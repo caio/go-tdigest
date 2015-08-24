@@ -127,8 +127,8 @@ func TestTInternals(t *testing.T) {
 
 	y := tdigest.summary.Find(Centroid{mean: 0.4})
 
-	if y.(Centroid).count != 6 || y.(Centroid).mean != 0.4 {
-		t.Errorf("Adding centroids with same mean should increment the count only. Got %s", y.(Centroid))
+	if y.count != 6 || y.mean != 0.4 {
+		t.Errorf("Adding centroids with same mean should increment the count only. Got %s", y)
 	}
 
 }
@@ -191,7 +191,7 @@ func TestIntegers(t *testing.T) {
 	}
 
 	var tot uint32 = 0
-	for i := range tdigest.summary.Iter() {
+	for i := range tdigest.summary.IterInOrder() {
 		tot += i.(Centroid).count
 	}
 

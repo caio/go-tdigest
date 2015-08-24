@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-
-	"github.com/ancientlore/go-avltree"
 )
 
 type Centroid struct {
@@ -53,14 +51,13 @@ func centroidLessOrEquals(p, q interface{}) bool {
 }
 
 type TDigest struct {
-	summary     *avltree.Tree
+	summary     *Summary
 	compression float64
 	count       uint32
 }
 
 func New(compression float64) *TDigest {
-	tree := avltree.New(compareCentroids, 0)
-	tdigest := TDigest{compression: compression, summary: tree, count: 0}
+	tdigest := TDigest{compression: compression, summary: newSummary(), count: 0}
 	return &tdigest
 }
 
@@ -72,14 +69,14 @@ func (t *TDigest) Percentile(p float64) float64 {
 	if t.summary.Len() == 0 {
 		return math.NaN()
 	} else if t.summary.Len() == 1 {
-		return t.summary.At(0).(Centroid).mean
+		return t.summary.Min().mean
 	}
 
 	p *= float64(t.count)
 	var total float64 = 0
 	i := 0
 
-	for item := range t.summary.Iter() {
+	for item := range t.summary.IterInOrder() {
 		k := float64(item.(Centroid).count)
 
 		if p < total+k {
@@ -95,7 +92,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 		total += k
 	}
 
-	return t.summary.At(t.summary.Len() - 1).(Centroid).mean
+	return t.summary.Max().mean
 }
 
 func (t *TDigest) Update(value float64, weight uint32) {
@@ -143,7 +140,7 @@ func (t *TDigest) Compress() {
 	}
 
 	oldTree := t.summary
-	t.summary = avltree.New(compareCentroids, 0)
+	t.summary = newSummary()
 
 	nodes := oldTree.Data()
 	shuffle(nodes)
@@ -184,7 +181,7 @@ func (t *TDigest) updateCentroid(c Centroid, mean float64, weight uint32) {
 		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %s. %s", c, t))
 	}
 
-	t.summary.Remove(c)
+	t.summary.Delete(c)
 	c.Update(mean, weight)
 	t.addCentroid(c)
 }
@@ -207,8 +204,8 @@ func (t *TDigest) addCentroid(c Centroid) {
 	current := t.summary.Find(c)
 
 	if current != nil {
-		t.summary.Remove(current)
-		c.Update(current.(Centroid).mean, current.(Centroid).count)
+		t.summary.Delete(*current)
+		c.Update(current.mean, current.count)
 	}
 
 	t.summary.Add(c)
@@ -240,7 +237,7 @@ func (t *TDigest) findNearestCentroids(c Centroid) []Centroid {
 
 func (t *TDigest) getSurroundingWith(c Centroid, cmp func(a, b interface{}) bool) (Centroid, Centroid) {
 	ceiling, floor := InvalidCentroid, InvalidCentroid
-	for item := range t.summary.Iter() {
+	for item := range t.summary.IterInOrder() {
 		if ceiling == InvalidCentroid && cmp(c, item) {
 			ceiling = item.(Centroid)
 		}
@@ -265,7 +262,7 @@ func (t *TDigest) successorAndPredecessorItems(c Centroid) (Centroid, Centroid) 
 func (t *TDigest) exclusiveSliceUntilMean(c Centroid) <-chan Centroid {
 	channel := make(chan Centroid)
 	go func() {
-		for item := range t.summary.Iter() {
+		for item := range t.summary.IterInOrder() {
 			if centroidLess(item, c) {
 				channel <- item.(Centroid)
 			} else {

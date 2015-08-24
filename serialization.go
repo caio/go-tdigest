@@ -31,7 +31,7 @@ func (t TDigest) AsBytes() ([]byte, error) {
 	}
 
 	var x float64 = 0
-	for item := range t.summary.Iter() {
+	for item := range t.summary.IterInOrder() {
 		delta := item.(Centroid).mean - x
 		x = item.(Centroid).mean
 		err = binary.Write(buffer, binary.BigEndian, float32(delta))
@@ -41,7 +41,7 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		}
 	}
 
-	for item := range t.summary.Iter() {
+	for item := range t.summary.IterInOrder() {
 		err = encodeUint(buffer, item.(Centroid).count)
 		if err != nil {
 			return nil, err
