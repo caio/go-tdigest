@@ -9,6 +9,8 @@ import (
 
 const SMALL_ENCODING int32 = 2
 
+// AsBytes serializes the digest into a byte array so it can be
+// saved to disk or sent over the wire.
 func (t TDigest) AsBytes() ([]byte, error) {
 	buffer := new(bytes.Buffer)
 
@@ -51,6 +53,8 @@ func (t TDigest) AsBytes() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// FromBytes reads a byte buffer with a serialized digest (from AsBytes)
+// and deserializes it.
 func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	var encoding int32
 	err := binary.Read(buf, binary.BigEndian, &encoding)

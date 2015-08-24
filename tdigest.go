@@ -1,3 +1,5 @@
+// Package tdigest provides a highly accurate mergeable data-structure
+// for quantile estimation.
 package tdigest
 
 import (
@@ -56,11 +58,20 @@ type TDigest struct {
 	count       uint32
 }
 
+// New creates a new digest.
+// The compression parameter rules the threshold in which samples are
+// merged together - the more often distinct samples are merged the more
+// precision is lost. Compression should be tuned according to your data
+// distribution, but a value of 10 is often good enough. A higher
+// compression value means holding more centroids in memory, which means
+// a bigger serialization payload and higher memory footprint.
 func New(compression float64) *TDigest {
 	tdigest := TDigest{compression: compression, summary: newSummary(), count: 0}
 	return &tdigest
 }
 
+// Percentile returns the desired percentile estimation.
+// Values of p must be between 0 and 1 (inclusive), will panic otherwise.
 func (t *TDigest) Percentile(p float64) float64 {
 	if p < 0 || p > 1 {
 		panic("Percentiles must be between 0 and 1 (inclusive)")
@@ -107,10 +118,15 @@ func (t *TDigest) Percentile(p float64) float64 {
 	}
 }
 
-func (t *TDigest) Update(value float64, weight uint32) {
-	t.count += weight
+// Update registers a new sample in the digest.
+// It's the main entry point for the digest and very likely the only
+// method to be used for collecting samples. The count parameter is for
+// when you are registering a sample that occurred multiple times - the
+// most common value for this is 1.
+func (t *TDigest) Update(value float64, count uint32) {
+	t.count += count
 
-	newCentroid := Centroid{value, weight}
+	newCentroid := Centroid{value, count}
 
 	if t.summary.Len() == 0 {
 		t.addCentroid(newCentroid)
@@ -119,26 +135,26 @@ func (t *TDigest) Update(value float64, weight uint32) {
 
 	candidates := t.findNearestCentroids(newCentroid)
 
-	for len(candidates) > 0 && weight > 0 {
+	for len(candidates) > 0 && count > 0 {
 		j := rand.Intn(len(candidates))
 		chosen := candidates[j]
 
 		quantile := t.computeCentroidQuantile(chosen)
 
-		if float64(chosen.count+weight) > t.threshold(quantile) {
+		if float64(chosen.count+count) > t.threshold(quantile) {
 			candidates = append(candidates[:j], candidates[j+1:]...)
 			continue
 		}
 
-		delta_w := math.Min(t.threshold(quantile)-float64(chosen.count), float64(weight))
+		delta_w := math.Min(t.threshold(quantile)-float64(chosen.count), float64(count))
 		t.updateCentroid(chosen, value, uint32(delta_w))
-		weight -= uint32(delta_w)
+		count -= uint32(delta_w)
 
 		candidates = append(candidates[:j], candidates[j+1:]...)
 	}
 
-	if weight > 0 {
-		t.addCentroid(Centroid{value, weight})
+	if count > 0 {
+		t.addCentroid(Centroid{value, count})
 	}
 
 	if float64(t.summary.Len()) > 20*t.compression {
@@ -146,6 +162,11 @@ func (t *TDigest) Update(value float64, weight uint32) {
 	}
 }
 
+// Compress tries to reduce the number of individual centroids stored
+// in the digest.
+// Compression trades off accuracy for performance and happens
+// automatically after a certain amount of distinct samples have been
+// stored.
 func (t *TDigest) Compress() {
 	if t.summary.Len() <= 1 {
 		return
@@ -162,15 +183,11 @@ func (t *TDigest) Compress() {
 	}
 }
 
-func shuffle(data []Centroid) {
-	for i := len(data) - 1; i > 1; i-- {
-		other := rand.Intn(i + 1)
-		tmp := data[other]
-		data[other] = data[i]
-		data[i] = tmp
-	}
-}
-
+// Merge joins a given digest into itself.
+// Merging is useful when you have multiple TDigest instances running
+// in separate threads and you want to compute quantiles over all the
+// samples. This is particularly important on a scatter-gather/map-reduce
+// scenario.
 func (t *TDigest) Merge(other *TDigest) {
 	if other.summary.Len() == 0 {
 		return
@@ -181,6 +198,15 @@ func (t *TDigest) Merge(other *TDigest) {
 
 	for _, item := range nodes {
 		t.Update(item.mean, item.count)
+	}
+}
+
+func shuffle(data []Centroid) {
+	for i := len(data) - 1; i > 1; i-- {
+		other := rand.Intn(i + 1)
+		tmp := data[other]
+		data[other] = data[i]
+		data[i] = tmp
 	}
 }
 
