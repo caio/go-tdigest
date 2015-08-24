@@ -6,7 +6,7 @@ import (
 	"github.com/petar/GoLLRB/llrb"
 )
 
-type Summary struct {
+type summary struct {
 	tree *llrb.LLRB
 }
 
@@ -14,28 +14,28 @@ func (c centroid) Less(than llrb.Item) bool {
 	return c.mean < than.(centroid).mean
 }
 
-func newSummary() *Summary {
-	s := Summary{tree: llrb.New()}
+func newSummary() *summary {
+	s := summary{tree: llrb.New()}
 	return &s
 }
 
-func (s Summary) Len() int {
+func (s summary) Len() int {
 	return s.tree.Len()
 }
 
-func (s Summary) Min() centroid {
+func (s summary) Min() centroid {
 	return s.tree.Min().(centroid)
 }
 
-func (s Summary) Max() centroid {
+func (s summary) Max() centroid {
 	return s.tree.Max().(centroid)
 }
 
-func (s *Summary) Add(c centroid) {
+func (s *summary) Add(c centroid) {
 	s.tree.InsertNoReplace(c)
 }
 
-func (s Summary) Data() []centroid {
+func (s summary) Data() []centroid {
 	data := make([]centroid, s.tree.Len())
 	i := 0
 	for item := range s.iterInOrder() {
@@ -45,7 +45,7 @@ func (s Summary) Data() []centroid {
 	return data
 }
 
-func (s Summary) Find(c centroid) *centroid {
+func (s summary) Find(c centroid) *centroid {
 	f := s.tree.Get(c)
 	if f != nil {
 		fAsCentroid := f.(centroid)
@@ -54,7 +54,7 @@ func (s Summary) Find(c centroid) *centroid {
 	return nil
 }
 
-func (s *Summary) Delete(c centroid) *centroid {
+func (s *summary) Delete(c centroid) *centroid {
 	removed := s.tree.Delete(c)
 	if removed != nil {
 		removedAsCentroid := removed.(centroid)
@@ -63,7 +63,7 @@ func (s *Summary) Delete(c centroid) *centroid {
 	return nil
 }
 
-func (s Summary) iterInOrder() <-chan interface{} {
+func (s summary) iterInOrder() <-chan interface{} {
 	channel := make(chan interface{})
 
 	go func() {
@@ -76,6 +76,6 @@ func (s Summary) iterInOrder() <-chan interface{} {
 	return channel
 }
 
-func (s Summary) IterInOrderWith(f llrb.ItemIterator) {
+func (s summary) IterInOrderWith(f llrb.ItemIterator) {
 	s.tree.AscendGreaterOrEqual(centroid{math.Inf(-1), 0}, f)
 }

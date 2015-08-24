@@ -53,7 +53,7 @@ func centroidLessOrEquals(p, q interface{}) bool {
 }
 
 type TDigest struct {
-	summary     *Summary
+	summary     *summary
 	compression float64
 	count       uint32
 }
