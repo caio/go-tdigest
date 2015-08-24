@@ -146,11 +146,11 @@ func (t *TDigest) Compress() {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Update(item.(Centroid).mean, item.(Centroid).count)
+		t.Update(item.mean, item.count)
 	}
 }
 
-func shuffle(data []interface{}) {
+func shuffle(data []Centroid) {
 	for i := len(data) - 1; i > 1; i-- {
 		other := rand.Intn(i + 1)
 		tmp := data[other]
@@ -168,7 +168,7 @@ func (t *TDigest) Merge(other *TDigest) {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Update(item.(Centroid).mean, item.(Centroid).count)
+		t.Update(item.mean, item.count)
 	}
 }
 
