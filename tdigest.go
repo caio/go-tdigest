@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+
+	"github.com/petar/GoLLRB/llrb"
 )
 
 type Centroid struct {
@@ -192,10 +194,16 @@ func (t *TDigest) threshold(q float64) float64 {
 
 func (t *TDigest) computeCentroidQuantile(c Centroid) float64 {
 	var cumSum uint32 = 0
-	channel := t.exclusiveSliceUntilMean(c)
-	for item := range channel {
-		cumSum += item.count
-	}
+
+	t.summary.IterInOrderWith(func(i llrb.Item) bool {
+		if !centroidLess(i.(Centroid), c) {
+			return false
+		}
+
+		cumSum += i.(Centroid).count
+
+		return true
+	})
 
 	return (float64(c.count)/2.0 + float64(cumSum)) / float64(t.count)
 }
@@ -257,19 +265,4 @@ func (t *TDigest) ceilingAndFloorItems(c Centroid) (Centroid, Centroid) {
 func (t *TDigest) successorAndPredecessorItems(c Centroid) (Centroid, Centroid) {
 	// FIXME This can be way cheaper if done directly on the tree nodes
 	return t.getSurroundingWith(c, centroidLess)
-}
-
-func (t *TDigest) exclusiveSliceUntilMean(c Centroid) <-chan Centroid {
-	channel := make(chan Centroid)
-	go func() {
-		for item := range t.summary.IterInOrder() {
-			if centroidLess(item, c) {
-				channel <- item.(Centroid)
-			} else {
-				break
-			}
-		}
-		close(channel)
-	}()
-	return channel
 }

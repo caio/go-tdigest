@@ -75,3 +75,7 @@ func (s Summary) IterInOrder() <-chan interface{} {
 	}()
 	return channel
 }
+
+func (s Summary) IterInOrderWith(f llrb.ItemIterator) {
+	s.tree.AscendGreaterOrEqual(Centroid{math.Inf(-1), 0}, f)
+}
