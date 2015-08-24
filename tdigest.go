@@ -17,7 +17,7 @@ func (c Centroid) String() string {
 	return fmt.Sprintf("C<m=%.6f,c=%d>", c.mean, c.count)
 }
 
-func (c Centroid) Equals(other Centroid) bool {
+func (c Centroid) Equals(other *Centroid) bool {
 	return c.mean == other.mean && c.count == other.count
 }
 
@@ -25,8 +25,6 @@ func (c *Centroid) Update(x float64, weight uint32) {
 	c.count += weight
 	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
 }
-
-var InvalidCentroid Centroid = Centroid{mean: 0.0, count: 0}
 
 func compareCentroids(p, q interface{}) int {
 	a := p.(Centroid).mean
@@ -234,49 +232,51 @@ func (t *TDigest) addCentroid(c Centroid) {
 func (t *TDigest) findNearestCentroids(c Centroid) []Centroid {
 	ceil, floor := t.ceilingAndFloorItems(c)
 
-	if ceil == InvalidCentroid && floor == InvalidCentroid {
+	if ceil == nil && floor == nil {
 		panic("findNearestCentroids called on an empty tree")
 	}
 
-	if ceil == InvalidCentroid {
-		return []Centroid{floor}
+	if ceil == nil {
+		return []Centroid{*floor}
 	}
 
-	if floor == InvalidCentroid {
-		return []Centroid{ceil}
+	if floor == nil {
+		return []Centroid{*ceil}
 	}
 
 	if math.Abs(floor.mean-c.mean) < math.Abs(ceil.mean-c.mean) {
-		return []Centroid{floor}
+		return []Centroid{*floor}
 	} else if math.Abs(floor.mean-c.mean) == math.Abs(ceil.mean-c.mean) && !floor.Equals(ceil) {
-		return []Centroid{floor, ceil}
+		return []Centroid{*floor, *ceil}
 	} else {
-		return []Centroid{ceil}
+		return []Centroid{*ceil}
 	}
 }
 
-func (t *TDigest) getSurroundingWith(c Centroid, cmp func(a, b interface{}) bool) (Centroid, Centroid) {
-	ceiling, floor := InvalidCentroid, InvalidCentroid
+func (t *TDigest) getSurroundingWith(c Centroid, cmp func(a, b interface{}) bool) (*Centroid, *Centroid) {
+	var ceiling, floor *Centroid = nil, nil
 
 	t.summary.IterInOrderWith(func(item llrb.Item) bool {
-		if ceiling == InvalidCentroid && cmp(c, item) {
-			ceiling = item.(Centroid)
+		if ceiling == nil && cmp(c, item) {
+			tmp := item.(Centroid)
+			ceiling = &tmp
 		}
 		if cmp(item, c) {
-			floor = item.(Centroid)
+			tmp := item.(Centroid)
+			floor = &tmp
 		}
 		return true
 	})
 	return ceiling, floor
 }
 
-func (t *TDigest) ceilingAndFloorItems(c Centroid) (Centroid, Centroid) {
+func (t *TDigest) ceilingAndFloorItems(c Centroid) (*Centroid, *Centroid) {
 	// ceiling => smallest key greater than or equals to key
 	// floor   => greatest key less than or equals to key
 	return t.getSurroundingWith(c, centroidLessOrEquals)
 }
 
-func (t *TDigest) successorAndPredecessorItems(c Centroid) (Centroid, Centroid) {
+func (t *TDigest) successorAndPredecessorItems(c Centroid) (*Centroid, *Centroid) {
 	// FIXME This can be way cheaper if done directly on the tree nodes
 	return t.getSurroundingWith(c, centroidLess)
 }

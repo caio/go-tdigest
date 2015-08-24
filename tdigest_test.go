@@ -12,9 +12,9 @@ import (
 func TestCentroid(t *testing.T) {
 	t.Parallel()
 
-	c1 := Centroid{mean: 0.4, count: 1}
-	c2 := Centroid{mean: 0.4, count: 1}
-	c3 := Centroid{mean: 0.4, count: 2}
+	c1 := &Centroid{mean: 0.4, count: 1}
+	c2 := &Centroid{mean: 0.4, count: 1}
+	c3 := &Centroid{mean: 0.4, count: 2}
 
 	if c1.Equals(c2) != c2.Equals(c1) {
 		t.Errorf("Equality is not commutative: c1=%s c2=%s", c1, c2)
@@ -42,7 +42,7 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor := tdigest.ceilingAndFloorItems(Centroid{1, 1})
 
-	if ceil != InvalidCentroid || floor != InvalidCentroid {
+	if ceil != nil || floor != nil {
 		t.Errorf("Empty centroids must return invalid ceiling and floor items")
 	}
 
@@ -51,13 +51,13 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor = tdigest.ceilingAndFloorItems(Centroid{0.3, 1})
 
-	if floor != InvalidCentroid || !c1.Equals(ceil) {
+	if floor != nil || !c1.Equals(ceil) {
 		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%s, floor=%s", ceil, floor)
 	}
 
 	ceil, floor = tdigest.ceilingAndFloorItems(Centroid{0.5, 1})
 
-	if ceil != InvalidCentroid || !c1.Equals(floor) {
+	if ceil != nil || !c1.Equals(floor) {
 		t.Errorf("Expected to find a ceiling and NOT find a floor. ceil=%s, floor=%s", ceil, floor)
 	}
 
@@ -90,19 +90,19 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor = tdigest.ceilingAndFloorItems(Centroid{10, 1})
 
-	if ceil != InvalidCentroid {
+	if ceil != nil {
 		t.Errorf("Expected an invalid ceil. Got %s", ceil)
 	}
 
 	ceil, floor = tdigest.ceilingAndFloorItems(Centroid{0.0001, 12})
 
-	if floor != InvalidCentroid {
+	if floor != nil {
 		t.Errorf("Expected an invalid floor. Got %s", floor)
 	}
 
 	ceil, floor = tdigest.ceilingAndFloorItems(c4)
 
-	if !floor.Equals(ceil) || floor == InvalidCentroid {
+	if !floor.Equals(ceil) || floor == nil {
 		t.Errorf("ceiling and floor of an existing item should be the item itself")
 	}
 }
