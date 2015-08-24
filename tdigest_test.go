@@ -164,9 +164,16 @@ func TestGoRoutineLeak(t *testing.T) {
 		t.Skipf("Skipping goroutine leak test. Short flag is on")
 	}
 
-	startGoroutines := runtime.NumGoroutine()
-
 	tdigest := New(10)
+
+	// Warm this up a little bit to let the runtime do its thing
+	for i := 0; i < 10000; i++ {
+		tdigest.Update(rand.Float64(), 1)
+	}
+
+	tdigest = New(10)
+
+	startGoroutines := runtime.NumGoroutine()
 
 	for i := 0; i < 10000; i++ {
 		tdigest.Update(rand.Float64(), 1)
