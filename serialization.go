@@ -7,26 +7,28 @@ import (
 	"fmt"
 )
 
-const SMALL_ENCODING int32 = 2
+const smallEncoding int32 = 2
+
+var endianess = binary.BigEndian
 
 // AsBytes serializes the digest into a byte array so it can be
 // saved to disk or sent over the wire.
 func (t TDigest) AsBytes() ([]byte, error) {
 	buffer := new(bytes.Buffer)
 
-	err := binary.Write(buffer, binary.BigEndian, SMALL_ENCODING)
+	err := binary.Write(buffer, endianess, smallEncoding)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Write(buffer, binary.BigEndian, t.compression)
+	err = binary.Write(buffer, endianess, t.compression)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Write(buffer, binary.BigEndian, int32(t.summary.Len()))
+	err = binary.Write(buffer, endianess, int32(t.summary.Len()))
 
 	if err != nil {
 		return nil, err
@@ -36,7 +38,7 @@ func (t TDigest) AsBytes() ([]byte, error) {
 	for item := range t.summary.iterInOrder() {
 		delta := item.(centroid).mean - x
 		x = item.(centroid).mean
-		err = binary.Write(buffer, binary.BigEndian, float32(delta))
+		err = binary.Write(buffer, endianess, float32(delta))
 
 		if err != nil {
 			return nil, err
@@ -57,17 +59,17 @@ func (t TDigest) AsBytes() ([]byte, error) {
 // and deserializes it.
 func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	var encoding int32
-	err := binary.Read(buf, binary.BigEndian, &encoding)
+	err := binary.Read(buf, endianess, &encoding)
 	if err != nil {
 		return nil, err
 	}
 
-	if encoding != SMALL_ENCODING {
+	if encoding != smallEncoding {
 		return nil, errors.New(fmt.Sprintf("Unsupported encoding version: %d", encoding))
 	}
 
 	var compression float64
-	err = binary.Read(buf, binary.BigEndian, &compression)
+	err = binary.Read(buf, endianess, &compression)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +77,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	t := New(compression)
 
 	var numCentroids int32
-	err = binary.Read(buf, binary.BigEndian, &numCentroids)
+	err = binary.Read(buf, endianess, &numCentroids)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +85,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	means := make([]float32, numCentroids)
 	var i int32
 	for i = 0; i < numCentroids; i++ {
-		err = binary.Read(buf, binary.BigEndian, &means[i])
+		err = binary.Read(buf, endianess, &means[i])
 		if err != nil {
 			return nil, err
 		}
