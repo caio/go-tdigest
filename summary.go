@@ -11,7 +11,7 @@ type summary struct {
 }
 
 func (c centroid) Less(than llrb.Item) bool {
-	return c.mean < than.(centroid).mean
+	return c.mean < than.(*centroid).mean
 }
 
 func newSummary() *summary {
@@ -23,46 +23,46 @@ func (s summary) Len() int {
 	return s.tree.Len()
 }
 
-func (s summary) Min() centroid {
-	return s.tree.Min().(centroid)
+func (s summary) Min() *centroid {
+	return s.tree.Min().(*centroid)
 }
 
-func (s summary) Max() centroid {
-	return s.tree.Max().(centroid)
+func (s summary) Max() *centroid {
+	return s.tree.Max().(*centroid)
 }
 
-func (s *summary) Add(c centroid) {
+func (s *summary) Add(c *centroid) {
 	s.tree.InsertNoReplace(c)
 }
 
-func (s summary) Data() []centroid {
-	data := make([]centroid, 0, s.tree.Len())
+func (s summary) Data() []*centroid {
+	data := make([]*centroid, 0, s.tree.Len())
 	s.IterInOrderWith(func(item llrb.Item) bool {
-		data = append(data, item.(centroid))
+		data = append(data, item.(*centroid))
 		return true
 	})
 
 	return data
 }
 
-func (s summary) Find(c centroid) *centroid {
+func (s summary) Find(c *centroid) *centroid {
 	f := s.tree.Get(c)
 	if f != nil {
-		fAsCentroid := f.(centroid)
-		return &fAsCentroid
+		return f.(*centroid)
 	}
 	return nil
 }
 
-func (s *summary) Delete(c centroid) *centroid {
+func (s *summary) Delete(c *centroid) *centroid {
 	removed := s.tree.Delete(c)
 	if removed != nil {
-		removedAsCentroid := removed.(centroid)
-		return &removedAsCentroid
+		return removed.(*centroid)
 	}
 	return nil
 }
 
+var smallestCentroid = newCentroid(math.Inf(-1), 0)
+
 func (s summary) IterInOrderWith(f llrb.ItemIterator) {
-	s.tree.AscendGreaterOrEqual(centroid{math.Inf(-1), 0}, f)
+	s.tree.AscendGreaterOrEqual(smallestCentroid, f)
 }

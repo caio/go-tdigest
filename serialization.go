@@ -38,8 +38,8 @@ func (t TDigest) AsBytes() ([]byte, error) {
 
 	var x float64
 	t.summary.IterInOrderWith(func(item llrb.Item) bool {
-		delta := item.(centroid).mean - x
-		x = item.(centroid).mean
+		delta := item.(*centroid).mean - x
+		x = item.(*centroid).mean
 		err = binary.Write(buffer, endianess, float32(delta))
 
 		return err == nil
@@ -49,7 +49,7 @@ func (t TDigest) AsBytes() ([]byte, error) {
 	}
 
 	t.summary.IterInOrderWith(func(item llrb.Item) bool {
-		err = encodeUint(buffer, item.(centroid).count)
+		err = encodeUint(buffer, item.(*centroid).count)
 		return err == nil
 	})
 	if err != nil {
