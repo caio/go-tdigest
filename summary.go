@@ -36,12 +36,12 @@ func (s *summary) Add(c centroid) {
 }
 
 func (s summary) Data() []centroid {
-	data := make([]centroid, s.tree.Len())
-	i := 0
-	for item := range s.iterInOrder() {
-		data[i] = item.(centroid)
-		i++
-	}
+	data := make([]centroid, 0, s.tree.Len())
+	s.IterInOrderWith(func(item llrb.Item) bool {
+		data = append(data, item.(centroid))
+		return true
+	})
+
 	return data
 }
 
@@ -61,19 +61,6 @@ func (s *summary) Delete(c centroid) *centroid {
 		return &removedAsCentroid
 	}
 	return nil
-}
-
-func (s summary) iterInOrder() <-chan interface{} {
-	channel := make(chan interface{})
-
-	go func() {
-		s.tree.AscendGreaterOrEqual(centroid{math.Inf(-1), 0}, func(i llrb.Item) bool {
-			channel <- i
-			return true
-		})
-		close(channel)
-	}()
-	return channel
 }
 
 func (s summary) IterInOrderWith(f llrb.ItemIterator) {

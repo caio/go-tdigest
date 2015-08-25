@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
+	"github.com/petar/GoLLRB/llrb"
 )
 
 const smallEncoding int32 = 2
@@ -34,22 +36,24 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	var x float64
-	for item := range t.summary.iterInOrder() {
+	var x float64 = 0
+	t.summary.IterInOrderWith(func(item llrb.Item) bool {
 		delta := item.(centroid).mean - x
 		x = item.(centroid).mean
 		err = binary.Write(buffer, endianess, float32(delta))
 
-		if err != nil {
-			return nil, err
-		}
+		return err == nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	for item := range t.summary.iterInOrder() {
+	t.summary.IterInOrderWith(func(item llrb.Item) bool {
 		err = encodeUint(buffer, item.(centroid).count)
-		if err != nil {
-			return nil, err
-		}
+		return err == nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return buffer.Bytes(), nil

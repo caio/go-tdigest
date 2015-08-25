@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"sort"
 	"testing"
+
+	"github.com/petar/GoLLRB/llrb"
 )
 
 func TestCentroid(t *testing.T) {
@@ -228,10 +230,11 @@ func TestIntegers(t *testing.T) {
 		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Percentile(0.5))
 	}
 
-	var tot uint32
-	for i := range tdigest.summary.iterInOrder() {
-		tot += i.(centroid).count
-	}
+	var tot uint32 = 0
+	tdigest.summary.IterInOrderWith(func(item llrb.Item) bool {
+		tot += item.(centroid).count
+		return true
+	})
 
 	if tot != 9 {
 		t.Errorf("Expected the centroid count to be 9, Got %d instead", tot)
