@@ -7,6 +7,7 @@ This package provides a very crude implementation of Ted Dunning's t-digest
 data structure in Go.
 
 [![Build Status](https://travis-ci.org/caio/go-tdigest.svg?branch=master)](https://travis-ci.org/caio/go-tdigest)
+[![GoDoc](https://godoc.org/github.com/caio/go-tdigest?status.svg)](http://godoc.org/github.com/caio/go-tdigest)
 
 ## Installation
 
