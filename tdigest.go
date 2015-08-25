@@ -28,19 +28,6 @@ func (c *centroid) Update(x float64, weight uint32) {
 	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
 }
 
-func compareCentroids(p, q interface{}) int {
-	a := p.(centroid).mean
-	b := q.(centroid).mean
-
-	if a < b {
-		return -1
-	} else if a > b {
-		return 1
-	} else {
-		return 0
-	}
-}
-
 func centroidLess(p, q interface{}) bool {
 	res := p.(centroid).mean < q.(centroid).mean
 	return res
