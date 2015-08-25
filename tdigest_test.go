@@ -133,6 +133,11 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Adding centroids with same mean should increment the count only. Got %s", y)
 	}
 
+	err := tdigest.Update(0, 0)
+
+	if err == nil {
+		t.Errorf("Expected Update() to error out with input (0,0)")
+	}
 }
 
 func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *testing.T) {

@@ -110,14 +110,19 @@ func (t *TDigest) Percentile(p float64) float64 {
 // method to be used for collecting samples. The count parameter is for
 // when you are registering a sample that occurred multiple times - the
 // most common value for this is 1.
-func (t *TDigest) Update(value float64, count uint32) {
+func (t *TDigest) Update(value float64, count uint32) error {
+
+	if value == 0 || count == 0 {
+		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
+	}
+
 	t.count += count
 
 	newCentroid := centroid{value, count}
 
 	if t.summary.Len() == 0 {
 		t.addCentroid(newCentroid)
-		return
+		return nil
 	}
 
 	candidates := t.findNearestCentroids(newCentroid)
@@ -147,6 +152,8 @@ func (t *TDigest) Update(value float64, count uint32) {
 	if float64(t.summary.Len()) > 20*t.compression {
 		t.Compress()
 	}
+
+	return nil
 }
 
 // Compress tries to reduce the number of individual centroids stored
