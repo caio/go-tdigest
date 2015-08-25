@@ -14,16 +14,24 @@ data structure in Go.
 
 ## Usage
 
-    import ("github.com/caio/go-tdigest" "math/rand" "fmt")
+    package main
 
-    compression := 10
-    t := tdigest.New(compression)
+    import (
+            "fmt"
+            "math/rand"
 
-    for i := 0; i < 10000; i++ {
-        t.Update(rand.Float64(), 1)
+            "github.com/caio/go-tdigest"
+    )
+
+    func main() {
+            var t = tdigest.New(100)
+
+            for i := 0; i < 10000; i++ {
+                    t.Update(rand.Float64(), 1)
+            }
+
+            fmt.Printf("p(.5) = %.6f\n", t.Percentile(0.5))
     }
-
-    fmt.Printf("p(.5) = %.6f\n", t.Percentile(0.5))
 
 ## Disclaimer
 
