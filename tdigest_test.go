@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"math"
 	"math/rand"
-	"runtime"
 	"sort"
 	"testing"
 
@@ -159,43 +158,6 @@ func TestUniformDistribution(t *testing.T) {
 	assertDifferenceSmallerThan(tdigest, 0.99, 0.005, t)
 	assertDifferenceSmallerThan(tdigest, 0.001, 0.001, t)
 	assertDifferenceSmallerThan(tdigest, 0.999, 0.001, t)
-}
-
-func TestGoRoutineLeak(t *testing.T) {
-	if testing.Short() {
-		t.Skipf("Skipping goroutine leak test. Short flag is on")
-	}
-
-	tdigest := New(10)
-
-	// Warm this up a little bit to let the runtime do its thing
-	for i := 0; i < 10000; i++ {
-		tdigest.Update(rand.Float64(), 1)
-	}
-
-	tdigest = New(10)
-
-	startGoroutines := runtime.NumGoroutine()
-
-	for i := 0; i < 10000; i++ {
-		tdigest.Update(rand.Float64(), 1)
-	}
-
-	endGoroutines := runtime.NumGoroutine()
-	if startGoroutines < endGoroutines {
-		t.Errorf("Number of goroutines increased after a series of Update calls. Started with %d, Ended with %d", startGoroutines, endGoroutines)
-	}
-
-	startGoroutines = endGoroutines
-
-	for _, p := range []float64{0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999} {
-		tdigest.Percentile(p)
-	}
-
-	endGoroutines = runtime.NumGoroutine()
-	if startGoroutines < endGoroutines {
-		t.Errorf("Number of goroutines increased after a series of Percentile calls. Started with %d, Ended with %d", startGoroutines, endGoroutines)
-	}
 }
 
 func TestSequentialInsertion(t *testing.T) {
