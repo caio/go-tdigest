@@ -113,11 +113,33 @@ func TestTInternals(t *testing.T) {
 
 	tdigest := New(100)
 
+	if !math.IsNaN(tdigest.Percentile(0.1)) {
+		t.Errorf("Percentile() on an empty digest should return NaN. Got: %.4f", tdigest.Percentile(0.1))
+	}
+
 	tdigest.addCentroid(newCentroid(0.4, 1))
+
+	if tdigest.Percentile(0.1) != 0.4 {
+		t.Errorf("Percentile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Percentile(0.1))
+	}
+
 	tdigest.addCentroid(newCentroid(0.5, 1))
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
+	}
+
+	if !tdigest.summary.Min().Equals(newCentroid(0.4, 1)) {
+		t.Errorf("Min() returned an unexpected centroid: %s", tdigest.summary.Min())
+	}
+
+	if !tdigest.summary.Max().Equals(newCentroid(0.5, 1)) {
+		t.Errorf("Min() returned an unexpected centroid: %s", tdigest.summary.Min())
+	}
+
+	deleted := tdigest.summary.Delete(newCentroid(0.6, 1))
+	if deleted != nil {
+		t.Errorf("Delete() on non-existant centroid should return nil, go this instead: %s", deleted)
 	}
 
 	tdigest.addCentroid(newCentroid(0.4, 2))
