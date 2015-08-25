@@ -34,7 +34,7 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	var x float64 = 0
+	var x float64
 	for item := range t.summary.iterInOrder() {
 		delta := item.(centroid).mean - x
 		x = item.(centroid).mean
@@ -65,7 +65,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	}
 
 	if encoding != smallEncoding {
-		return nil, errors.New(fmt.Sprintf("Unsupported encoding version: %d", encoding))
+		return nil, fmt.Errorf("Unsupported encoding version: %d", encoding)
 	}
 
 	var compression float64
@@ -91,7 +91,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		}
 	}
 
-	var x float64 = 0
+	var x float64
 	for i = 0; i < numCentroids; i++ {
 		decUint, err := decodeUint(buf)
 		if err != nil {
@@ -106,7 +106,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 }
 
 func encodeUint(buf *bytes.Buffer, n uint32) error {
-	var k uint32 = 0
+	var k uint32
 	for n < 0 || n > 0x7f {
 		b := byte(0x80 | (0x7f & n))
 
@@ -136,7 +136,7 @@ func decodeUint(buf *bytes.Reader) (uint32, error) {
 		return 0, err
 	}
 
-	var z uint32 = 0x7f & uint32(v)
+	var z = 0x7f & uint32(v)
 	var shift uint32 = 7
 	for v&0x80 != 0 {
 		if shift > 28 {

@@ -52,6 +52,7 @@ func centroidLessOrEquals(p, q interface{}) bool {
 	return a <= b
 }
 
+// TDigest is a quantile summary structure
 type TDigest struct {
 	summary     *summary
 	compression float64
@@ -84,7 +85,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 	}
 
 	p *= float64(t.count)
-	var total float64 = 0
+	var total float64
 	i := 0
 
 	found := false
@@ -113,9 +114,8 @@ func (t *TDigest) Percentile(p float64) float64 {
 
 	if found {
 		return result
-	} else {
-		return t.summary.Max().mean
 	}
+	return t.summary.Max().mean
 }
 
 // Update registers a new sample in the digest.
@@ -146,9 +146,9 @@ func (t *TDigest) Update(value float64, count uint32) {
 			continue
 		}
 
-		delta_w := math.Min(t.threshold(quantile)-float64(chosen.count), float64(count))
-		t.updateCentroid(chosen, value, uint32(delta_w))
-		count -= uint32(delta_w)
+		deltaW := math.Min(t.threshold(quantile)-float64(chosen.count), float64(count))
+		t.updateCentroid(chosen, value, uint32(deltaW))
+		count -= uint32(deltaW)
 
 		candidates = append(candidates[:j], candidates[j+1:]...)
 	}
@@ -229,7 +229,7 @@ func (t *TDigest) threshold(q float64) float64 {
 }
 
 func (t *TDigest) computeCentroidQuantile(c centroid) float64 {
-	var cumSum uint32 = 0
+	var cumSum uint32
 
 	t.summary.IterInOrderWith(func(i llrb.Item) bool {
 		if !centroidLess(i.(centroid), c) {
