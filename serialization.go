@@ -36,7 +36,7 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	var x float64 = 0
+	var x float64
 	t.summary.IterInOrderWith(func(item llrb.Item) bool {
 		delta := item.(centroid).mean - x
 		x = item.(centroid).mean
