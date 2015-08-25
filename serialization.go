@@ -106,51 +106,19 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 }
 
 func encodeUint(buf *bytes.Buffer, n uint32) error {
-	var k uint32
-	for n < 0 || n > 0x7f {
-		b := byte(0x80 | (0x7f & n))
+	var b [binary.MaxVarintLen32]byte
 
-		err := buf.WriteByte(b)
-		if err != nil {
-			return err
-		}
+	l := binary.PutUvarint(b[:], uint64(n))
 
-		n = n >> 7
-		k++
-		if k >= 6 {
-			return errors.New("Tried encoding a number that's too big")
-		}
-	}
-
-	err := buf.WriteByte(byte(n))
-	if err != nil {
-		return err
-	}
+	buf.Write(b[:l])
 
 	return nil
 }
 
 func decodeUint(buf *bytes.Reader) (uint32, error) {
-	v, err := buf.ReadByte()
-	if err != nil {
-		return 0, err
+	v, err := binary.ReadUvarint(buf)
+	if v > 0xffffffff {
+		return 0, errors.New("Something wrong, this number looks too big")
 	}
-
-	var z = 0x7f & uint32(v)
-	var shift uint32 = 7
-	for v&0x80 != 0 {
-		if shift > 28 {
-			return 0, errors.New("Something wrong, this number looks too big")
-		}
-
-		v, err = buf.ReadByte()
-		if err != nil {
-			return 0, err
-		}
-
-		z += uint32((v & 0x7f)) << shift
-		shift += 7
-	}
-
-	return z, nil
+	return uint32(v), err
 }
