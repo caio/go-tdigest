@@ -116,7 +116,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 // most common value for this is 1.
 func (t *TDigest) Update(value float64, count uint32) error {
 
-	if value == 0 || count == 0 {
+	if count == 0 {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
 	}
 
