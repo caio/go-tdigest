@@ -213,13 +213,14 @@ func (t TDigest) String() string {
 }
 
 func (t *TDigest) updateCentroid(c *centroid, mean float64, weight uint32) {
-	if t.summary.Find(c) == nil {
+	deleted := t.summary.Delete(c)
+
+	if deleted == nil {
 		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %s. %s", c, t))
 	}
 
-	t.summary.Delete(c)
-	c.Update(mean, weight)
-	t.addCentroid(c)
+	deleted.Update(mean, weight)
+	t.addCentroid(deleted)
 }
 
 func (t *TDigest) threshold(q float64) float64 {
