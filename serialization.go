@@ -106,7 +106,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 			return nil, err
 		}
 
-		t.Update(float64(means[i])+x, decUint)
+		t.Add(float64(means[i])+x, decUint)
 		x = float64(means[i])
 	}
 

@@ -109,12 +109,12 @@ func (t *TDigest) Percentile(p float64) float64 {
 	return t.summary.Max().mean
 }
 
-// Update registers a new sample in the digest.
+// Add registers a new sample in the digest.
 // It's the main entry point for the digest and very likely the only
 // method to be used for collecting samples. The count parameter is for
 // when you are registering a sample that occurred multiple times - the
 // most common value for this is 1.
-func (t *TDigest) Update(value float64, count uint32) error {
+func (t *TDigest) Add(value float64, count uint32) error {
 
 	if count == 0 {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
@@ -177,7 +177,7 @@ func (t *TDigest) Compress() {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Update(item.mean, item.count)
+		t.Add(item.mean, item.count)
 	}
 }
 
@@ -195,7 +195,7 @@ func (t *TDigest) Merge(other *TDigest) {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Update(item.mean, item.count)
+		t.Add(item.mean, item.count)
 	}
 }
 

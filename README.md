@@ -28,7 +28,7 @@ data structure in Go.
             var t = tdigest.New(100)
 
             for i := 0; i < 10000; i++ {
-                    t.Update(rand.Float64(), 1)
+                    t.Add(rand.Float64(), 1)
             }
 
             fmt.Printf("p(.5) = %.6f\n", t.Percentile(0.5))

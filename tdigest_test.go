@@ -155,7 +155,7 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Adding centroids with same mean should increment the count only. Got %s", y)
 	}
 
-	err := tdigest.Update(0, 0)
+	err := tdigest.Add(0, 0)
 
 	if err == nil {
 		t.Errorf("Expected Update() to error out with input (0,0)")
@@ -175,7 +175,7 @@ func TestUniformDistribution(t *testing.T) {
 	tdigest := New(100)
 
 	for i := 0; i < 10000; i++ {
-		tdigest.Update(rand.Float64(), 1)
+		tdigest.Add(rand.Float64(), 1)
 	}
 
 	assertDifferenceSmallerThan(tdigest, 0.5, 0.02, t)
@@ -193,7 +193,7 @@ func TestSequentialInsertion(t *testing.T) {
 
 	// FIXME Timeout after X seconds of something?
 	for i := 0; i < 10000; i++ {
-		tdigest.Update(float64(i), 1)
+		tdigest.Add(float64(i), 1)
 	}
 }
 
@@ -201,9 +201,9 @@ func TestIntegers(t *testing.T) {
 	t.Parallel()
 	tdigest := New(100)
 
-	tdigest.Update(1, 1)
-	tdigest.Update(2, 1)
-	tdigest.Update(3, 1)
+	tdigest.Add(1, 1)
+	tdigest.Add(2, 1)
+	tdigest.Add(3, 1)
 
 	if tdigest.Percentile(0.5) != 2 {
 		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Percentile(0.5))
@@ -212,7 +212,7 @@ func TestIntegers(t *testing.T) {
 	tdigest = New(100)
 
 	for _, i := range []float64{1, 2, 2, 2, 2, 2, 2, 2, 3} {
-		tdigest.Update(i, 1)
+		tdigest.Add(i, 1)
 	}
 
 	if tdigest.Percentile(0.5) != 2 {
@@ -267,9 +267,9 @@ func TestMerge(t *testing.T) {
 		num := rand.Float64()
 
 		data[i] = num
-		dist1.Update(num, 1)
+		dist1.Add(num, 1)
 		for j := 0; j < numSubs; j++ {
-			subs[j].Update(num, 1)
+			subs[j].Add(num, 1)
 		}
 	}
 
@@ -323,7 +323,7 @@ func TestSerialization(t *testing.T) {
 	//      so we don't end up compressing automatically
 	t1 := New(100)
 	for i := 0; i < 100; i++ {
-		t1.Update(rand.Float64(), 1)
+		t1.Add(rand.Float64(), 1)
 	}
 
 	serialized, _ := t1.AsBytes()
@@ -338,7 +338,7 @@ func TestSerialization(t *testing.T) {
 func benchmarkUpdate(compression float64, b *testing.B) {
 	t := New(compression)
 	for n := 0; n < b.N; n++ {
-		t.Update(rand.Float64(), 1)
+		t.Add(rand.Float64(), 1)
 	}
 }
 
