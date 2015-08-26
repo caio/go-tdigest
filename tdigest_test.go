@@ -158,7 +158,7 @@ func TestTInternals(t *testing.T) {
 	err := tdigest.Add(0, 0)
 
 	if err == nil {
-		t.Errorf("Expected Update() to error out with input (0,0)")
+		t.Errorf("Expected Add() to error out with input (0,0)")
 	}
 }
 
@@ -335,21 +335,24 @@ func TestSerialization(t *testing.T) {
 	}
 }
 
-func benchmarkUpdate(compression float64, b *testing.B) {
+func benchmarkAdd(compression float64, b *testing.B) {
 	t := New(compression)
 	for n := 0; n < b.N; n++ {
-		t.Add(rand.Float64(), 1)
+		err := t.Add(rand.Float64(), 1)
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }
 
-func BenchmarkUpdate1(b *testing.B) {
-	benchmarkUpdate(1, b)
+func BenchmarkAdd1(b *testing.B) {
+	benchmarkAdd(1, b)
 }
 
-func BenchmarkUpdate10(b *testing.B) {
-	benchmarkUpdate(10, b)
+func BenchmarkAdd10(b *testing.B) {
+	benchmarkAdd(10, b)
 }
 
-func BenchmarkUpdate100(b *testing.B) {
-	benchmarkUpdate(100, b)
+func BenchmarkAdd100(b *testing.B) {
+	benchmarkAdd(100, b)
 }
