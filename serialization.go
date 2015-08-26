@@ -86,6 +86,10 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		return nil, err
 	}
 
+	if numCentroids < 0 || numCentroids > 1<<22 {
+		return nil, errors.New("bad number of centroids in serialization")
+	}
+
 	means := make([]float32, numCentroids)
 	var i int32
 	for i = 0; i < numCentroids; i++ {
