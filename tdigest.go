@@ -89,7 +89,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 				found = true
 				return false
 			}
-			succ, pred := t.successorAndPredecessorItems(item.(*centroid))
+			succ, pred := t.summary.successorAndPredecessorItems(item.(*centroid))
 			delta := (succ.mean - pred.mean) / 2
 			result = item.(*centroid).mean + ((p-total)/k-0.5)*delta
 			found = true
@@ -253,7 +253,7 @@ func (t *TDigest) addCentroid(c *centroid) {
 }
 
 func (t *TDigest) findNearestCentroids(c *centroid) []*centroid {
-	ceil, floor := t.ceilingAndFloorItems(c)
+	ceil, floor := t.summary.ceilingAndFloorItems(c)
 
 	if ceil == nil && floor == nil {
 		panic("findNearestCentroids called on an empty tree")
@@ -274,30 +274,4 @@ func (t *TDigest) findNearestCentroids(c *centroid) []*centroid {
 	} else {
 		return []*centroid{ceil}
 	}
-}
-
-func (t *TDigest) getSurroundingWith(c *centroid, cmp func(a, b interface{}) bool) (*centroid, *centroid) {
-	var ceiling, floor *centroid = nil, nil
-
-	t.summary.IterInOrderWith(func(item interface{}) bool {
-		if ceiling == nil && cmp(c, item) {
-			ceiling = item.(*centroid)
-		}
-		if cmp(item, c) {
-			floor = item.(*centroid)
-		}
-		return true
-	})
-	return ceiling, floor
-}
-
-func (t *TDigest) ceilingAndFloorItems(c *centroid) (*centroid, *centroid) {
-	// ceiling => smallest key greater than or equals to key
-	// floor   => greatest key less than or equals to key
-	return t.getSurroundingWith(c, centroidLessOrEquals)
-}
-
-func (t *TDigest) successorAndPredecessorItems(c *centroid) (*centroid, *centroid) {
-	// FIXME This can be way cheaper if done directly on the tree nodes
-	return t.getSurroundingWith(c, centroidLess)
 }

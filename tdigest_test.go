@@ -39,7 +39,7 @@ func TestCeilingAndFloor(t *testing.T) {
 	t.Parallel()
 	tdigest := New(100)
 
-	ceil, floor := tdigest.ceilingAndFloorItems(newCentroid(1, 1))
+	ceil, floor := tdigest.summary.ceilingAndFloorItems(newCentroid(1, 1))
 
 	if ceil != nil || floor != nil {
 		t.Errorf("Empty centroids must return invalid ceiling and floor items")
@@ -48,13 +48,13 @@ func TestCeilingAndFloor(t *testing.T) {
 	c1 := newCentroid(0.4, 1)
 	tdigest.addCentroid(c1)
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(0.3, 1))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.3, 1))
 
 	if floor != nil || !c1.Equals(ceil) {
 		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%s, floor=%s", ceil, floor)
 	}
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(0.5, 1))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.5, 1))
 
 	if ceil != nil || !c1.Equals(floor) {
 		t.Errorf("Expected to find a ceiling and NOT find a floor. ceil=%s, floor=%s", ceil, floor)
@@ -63,16 +63,16 @@ func TestCeilingAndFloor(t *testing.T) {
 	c2 := newCentroid(0.1, 2)
 	tdigest.addCentroid(c2)
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(0.2, 1))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.2, 1))
 
-	if !c1.Equals(ceil) || !c2.Equals(floor) {
+	if ceil == nil || floor == nil || !c1.Equals(ceil) || !c2.Equals(floor) {
 		t.Errorf("Expected to find a ceiling and a floor. ceil=%s, floor=%s", ceil, floor)
 	}
 
 	c3 := newCentroid(0.21, 3)
 	tdigest.addCentroid(c3)
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(0.2, 1))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.2, 1))
 
 	if !c3.Equals(ceil) || !c2.Equals(floor) {
 		t.Errorf("Ceil should've shrunk. ceil=%s, floor=%s", ceil, floor)
@@ -81,27 +81,27 @@ func TestCeilingAndFloor(t *testing.T) {
 	c4 := newCentroid(0.1999, 1)
 	tdigest.addCentroid(c4)
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(0.2, 1))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.2, 1))
 
 	if !c3.Equals(ceil) || !c4.Equals(floor) {
 		t.Errorf("Floor should've shrunk. ceil=%s, floor=%s", ceil, floor)
 	}
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(10, 1))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(10, 1))
 
 	if ceil != nil {
 		t.Errorf("Expected an invalid ceil. Got %s", ceil)
 	}
 
-	ceil, floor = tdigest.ceilingAndFloorItems(newCentroid(0.0001, 12))
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.0001, 12))
 
 	if floor != nil {
 		t.Errorf("Expected an invalid floor. Got %s", floor)
 	}
 
-	ceil, floor = tdigest.ceilingAndFloorItems(c4)
+	ceil, floor = tdigest.summary.ceilingAndFloorItems(c4)
 
-	if !floor.Equals(ceil) || floor == nil {
+	if floor == nil || ceil == nil || !c4.Equals(ceil) || !c4.Equals(floor) {
 		t.Errorf("ceiling and floor of an existing item should be the item itself")
 	}
 }
