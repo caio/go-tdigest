@@ -6,8 +6,6 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
-
-	"github.com/petar/GoLLRB/llrb"
 )
 
 func TestCentroid(t *testing.T) {
@@ -220,7 +218,7 @@ func TestIntegers(t *testing.T) {
 	}
 
 	var tot uint32
-	tdigest.summary.IterInOrderWith(func(item llrb.Item) bool {
+	tdigest.summary.IterInOrderWith(func(item interface{}) bool {
 		tot += item.(*centroid).count
 		return true
 	})

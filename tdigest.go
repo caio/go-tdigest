@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-
-	"github.com/petar/GoLLRB/llrb"
 )
 
 type centroid struct {
@@ -58,7 +56,7 @@ type TDigest struct {
 // compression value means holding more centroids in memory, which means
 // a bigger serialization payload and higher memory footprint.
 func New(compression float64) *TDigest {
-	tdigest := TDigest{compression: compression, summary: newSummary(), count: 0}
+	tdigest := TDigest{compression: compression, summary: newSummary(uint(compression) * 20), count: 0}
 	return &tdigest
 }
 
@@ -82,7 +80,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 	found := false
 	var result float64
 
-	t.summary.IterInOrderWith(func(item llrb.Item) bool {
+	t.summary.IterInOrderWith(func(item interface{}) bool {
 		k := float64(item.(*centroid).count)
 
 		if p < total+k {
@@ -171,7 +169,7 @@ func (t *TDigest) Compress() {
 	}
 
 	oldTree := t.summary
-	t.summary = newSummary()
+	t.summary = newSummary(uint(t.compression) * 20)
 
 	nodes := oldTree.Data()
 	shuffle(nodes)
@@ -230,7 +228,7 @@ func (t *TDigest) threshold(q float64) float64 {
 func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
 	var cumSum uint32
 
-	t.summary.IterInOrderWith(func(i llrb.Item) bool {
+	t.summary.IterInOrderWith(func(i interface{}) bool {
 		if !centroidLess(i.(*centroid), c) {
 			return false
 		}
@@ -281,7 +279,7 @@ func (t *TDigest) findNearestCentroids(c *centroid) []*centroid {
 func (t *TDigest) getSurroundingWith(c *centroid, cmp func(a, b interface{}) bool) (*centroid, *centroid) {
 	var ceiling, floor *centroid = nil, nil
 
-	t.summary.IterInOrderWith(func(item llrb.Item) bool {
+	t.summary.IterInOrderWith(func(item interface{}) bool {
 		if ceiling == nil && cmp(c, item) {
 			ceiling = item.(*centroid)
 		}

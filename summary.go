@@ -1,22 +1,13 @@
 package tdigest
 
-import (
-	"math"
-
-	"github.com/petar/GoLLRB/llrb"
-)
-
 type summary struct {
-	tree *llrb.LLRB
+	tree *sortedSlice
 }
 
-func (c centroid) Less(than llrb.Item) bool {
-	return c.mean < than.(*centroid).mean
-}
-
-func newSummary() *summary {
-	s := summary{tree: llrb.New()}
-	return &s
+func newSummary(initialCapacity uint) *summary {
+	return &summary{
+		tree: newSortedSlice(initialCapacity),
+	}
 }
 
 func (s summary) Len() int {
@@ -24,20 +15,22 @@ func (s summary) Len() int {
 }
 
 func (s summary) Min() *centroid {
-	return s.tree.Min().(*centroid)
+	value, _ := s.tree.At(0)
+	return value.(*centroid)
 }
 
 func (s summary) Max() *centroid {
-	return s.tree.Max().(*centroid)
+	value, _ := s.tree.At(s.tree.Len() - 1)
+	return value.(*centroid)
 }
 
 func (s *summary) Add(c *centroid) {
-	s.tree.InsertNoReplace(c)
+	s.tree.Add(c.mean, c)
 }
 
 func (s summary) Data() []*centroid {
 	data := make([]*centroid, 0, s.tree.Len())
-	s.IterInOrderWith(func(item llrb.Item) bool {
+	s.tree.Iterate(func(item interface{}) bool {
 		data = append(data, item.(*centroid))
 		return true
 	})
@@ -46,7 +39,7 @@ func (s summary) Data() []*centroid {
 }
 
 func (s summary) Find(c *centroid) *centroid {
-	f := s.tree.Get(c)
+	f := s.tree.Find(c.mean)
 	if f != nil {
 		return f.(*centroid)
 	}
@@ -54,15 +47,13 @@ func (s summary) Find(c *centroid) *centroid {
 }
 
 func (s *summary) Delete(c *centroid) *centroid {
-	removed := s.tree.Delete(c)
+	removed := s.tree.Remove(c.mean)
 	if removed != nil {
 		return removed.(*centroid)
 	}
 	return nil
 }
 
-var smallestCentroid = newCentroid(math.Inf(-1), 0)
-
-func (s summary) IterInOrderWith(f llrb.ItemIterator) {
-	s.tree.AscendGreaterOrEqual(smallestCentroid, f)
+func (s summary) IterInOrderWith(f func(item interface{}) bool) {
+	s.tree.Iterate(f)
 }
