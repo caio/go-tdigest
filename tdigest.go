@@ -56,8 +56,11 @@ type TDigest struct {
 // compression value means holding more centroids in memory, which means
 // a bigger serialization payload and higher memory footprint.
 func New(compression float64) *TDigest {
-	tdigest := TDigest{compression: compression, summary: newSummary(uint(compression) * 20), count: 0}
-	return &tdigest
+	return &TDigest{
+		compression: compression,
+		summary:     newSummary(estimateCapacity(compression)),
+		count:       0,
+	}
 }
 
 // Percentile returns the desired percentile estimation.
@@ -169,7 +172,7 @@ func (t *TDigest) Compress() {
 	}
 
 	oldTree := t.summary
-	t.summary = newSummary(uint(t.compression) * 20)
+	t.summary = newSummary(estimateCapacity(t.compression))
 
 	nodes := oldTree.Data()
 	shuffle(nodes)
@@ -208,6 +211,10 @@ func shuffle(data []*centroid) {
 
 func (t TDigest) String() string {
 	return fmt.Sprintf("TD<compression=%.2f, count=%d, centroids=%d>", t.compression, t.count, t.summary.Len())
+}
+
+func estimateCapacity(compression float64) uint {
+	return uint(compression) * 10
 }
 
 func (t *TDigest) updateCentroid(c *centroid, mean float64, weight uint32) {
