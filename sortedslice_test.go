@@ -41,7 +41,7 @@ func TestBasics(t *testing.T) {
 
 func checkSorted(s *sortedSlice, t *testing.T) {
 	if !sort.Float64sAreSorted(s.keys) {
-		t.Fatalf("Keys are not sorted! %s", s.keys)
+		t.Fatalf("Keys are not sorted! %v", s.keys)
 	}
 }
 
@@ -66,7 +66,7 @@ func TestCore(t *testing.T) {
 		if err != nil {
 			_, exists := testData[k]
 			if !exists {
-				t.Errorf("Failed to insert %.2f even though it doesn't exist yet")
+				t.Errorf("Failed to insert %.2f even though it doesn't exist yet", k)
 			}
 		}
 

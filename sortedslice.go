@@ -23,7 +23,7 @@ func (s sortedSlice) Len() int {
 }
 
 func (s sortedSlice) String() string {
-	return fmt.Sprintf("SortedSlice(size=%d, keys=%s)", len(s.keys), s.keys)
+	return fmt.Sprintf("SortedSlice(size=%d, keys=%v)", len(s.keys), s.keys)
 }
 
 func (s *sortedSlice) Add(key float64, value interface{}) error {
