@@ -170,6 +170,8 @@ func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *test
 func TestUniformDistribution(t *testing.T) {
 	t.Parallel()
 
+	rand.Seed(0xDEADBEEF)
+
 	tdigest := New(100)
 
 	for i := 0; i < 10000; i++ {
