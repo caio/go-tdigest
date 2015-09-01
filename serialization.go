@@ -88,24 +88,25 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		return nil, errors.New("bad number of centroids in serialization")
 	}
 
-	means := make([]float32, numCentroids)
-	var i int32
-	for i = 0; i < numCentroids; i++ {
-		err = binary.Read(buf, endianess, &means[i])
+	means := make([]float64, numCentroids)
+	var delta float32
+	var x float64
+	for i := 0; i < int(numCentroids); i++ {
+		err = binary.Read(buf, endianess, &delta)
 		if err != nil {
 			return nil, err
 		}
+		x += float64(delta)
+		means[i] = x
 	}
 
-	var x float64
-	for i = 0; i < numCentroids; i++ {
+	for i := 0; i < int(numCentroids); i++ {
 		decUint, err := decodeUint(buf)
 		if err != nil {
 			return nil, err
 		}
 
-		t.Add(float64(means[i])+x, decUint)
-		x = float64(means[i])
+		t.Add(means[i], decUint)
 	}
 
 	return t, nil
