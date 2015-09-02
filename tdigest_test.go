@@ -14,14 +14,14 @@ func TestTInternals(t *testing.T) {
 
 	tdigest := New(100)
 
-	if !math.IsNaN(tdigest.Percentile(0.1)) {
-		t.Errorf("Percentile() on an empty digest should return NaN. Got: %.4f", tdigest.Percentile(0.1))
+	if !math.IsNaN(tdigest.Quantile(0.1)) {
+		t.Errorf("Quantile() on an empty digest should return NaN. Got: %.4f", tdigest.Quantile(0.1))
 	}
 
 	tdigest.Add(0.4, 1)
 
-	if tdigest.Percentile(0.1) != 0.4 {
-		t.Errorf("Percentile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Percentile(0.1))
+	if tdigest.Quantile(0.1) != 0.4 {
+		t.Errorf("Quantile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Quantile(0.1))
 	}
 
 	tdigest.Add(0.5, 1)
@@ -62,19 +62,19 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Expected Add() to error out with input (0,0)")
 	}
 
-	if tdigest.Percentile(0.9999999) != tdigest.summary.Max().mean {
+	if tdigest.Quantile(0.9999999) != tdigest.summary.Max().mean {
 		t.Errorf("High quantiles with little data should give out the MAX recorded mean")
 	}
 
-	if tdigest.Percentile(0.0000001) != tdigest.summary.Min().mean {
+	if tdigest.Quantile(0.0000001) != tdigest.summary.Min().mean {
 		t.Errorf("Low quantiles with little data should give out the MIN recorded mean")
 	}
 }
 
 func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *testing.T) {
-	tp := tdigest.Percentile(p)
+	tp := tdigest.Quantile(p)
 	if math.Abs(tp-p) >= m {
-		t.Errorf("T-Digest.Percentile(%.4f) = %.4f. Diff (%.4f) >= %.4f", p, tp, math.Abs(tp-p), m)
+		t.Errorf("T-Digest.Quantile(%.4f) = %.4f. Diff (%.4f) >= %.4f", p, tp, math.Abs(tp-p), m)
 	}
 }
 
@@ -116,8 +116,8 @@ func TestIntegers(t *testing.T) {
 	tdigest.Add(2, 1)
 	tdigest.Add(3, 1)
 
-	if tdigest.Percentile(0.5) != 2 {
-		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Percentile(0.5))
+	if tdigest.Quantile(0.5) != 2 {
+		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Quantile(0.5))
 	}
 
 	tdigest = New(100)
@@ -126,8 +126,8 @@ func TestIntegers(t *testing.T) {
 		tdigest.Add(i, 1)
 	}
 
-	if tdigest.Percentile(0.5) != 2 {
-		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Percentile(0.5))
+	if tdigest.Quantile(0.5) != 2 {
+		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Quantile(0.5))
 	}
 
 	var tot uint32
@@ -196,8 +196,8 @@ func TestMerge(t *testing.T) {
 
 	for _, p := range []float64{0.001, 0.01, 0.1, 0.2, 0.3, 0.5} {
 		q := quantile(p, data)
-		p1 := dist1.Percentile(p)
-		p2 := dist2.Percentile(p)
+		p1 := dist1.Quantile(p)
+		p2 := dist2.Quantile(p)
 
 		e1 := math.Abs(p1 - q)
 		e2 := math.Abs(p1 - q)

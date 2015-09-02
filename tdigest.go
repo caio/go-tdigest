@@ -32,9 +32,9 @@ func New(compression float64) *TDigest {
 
 // Percentile returns the desired percentile estimation.
 // Values of p must be between 0 and 1 (inclusive), will panic otherwise.
-func (t *TDigest) Percentile(p float64) float64 {
-	if p < 0 || p > 1 {
-		panic("Percentiles must be between 0 and 1 (inclusive)")
+func (t *TDigest) Quantile(q float64) float64 {
+	if q < 0 || q > 1 {
+		panic("q must be between 0 and 1 (inclusive)")
 	}
 
 	if t.summary.Len() == 0 {
@@ -43,7 +43,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 		return t.summary.Min().mean
 	}
 
-	p *= float64(t.count)
+	q *= float64(t.count)
 	var total float64
 	i := 0
 
@@ -53,7 +53,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 	t.summary.Iterate(func(item centroid) bool {
 		k := float64(item.count)
 
-		if p < total+k {
+		if q < total+k {
 			if i == 0 || i+1 == t.summary.Len() {
 				result = item.mean
 				found = true
@@ -61,7 +61,7 @@ func (t *TDigest) Percentile(p float64) float64 {
 			}
 			succ, pred := t.summary.successorAndPredecessorItems(item.mean)
 			delta := (succ.mean - pred.mean) / 2
-			result = item.mean + ((p-total)/k-0.5)*delta
+			result = item.mean + ((q-total)/k-0.5)*delta
 			found = true
 			return false
 		}

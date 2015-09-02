@@ -32,7 +32,7 @@ data structure in Go.
                     t.Add(rand.Float64(), 1)
             }
 
-            fmt.Printf("p(.5) = %.6f\n", t.Percentile(0.5))
+            fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
     }
 
 ## Disclaimer
