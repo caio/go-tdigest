@@ -284,12 +284,20 @@ func TestJavaSmallBytesCompat(t *testing.T) {
 
 func benchmarkAdd(compression float64, b *testing.B) {
 	t := New(compression)
+
+	data := make([]float64, b.N)
 	for n := 0; n < b.N; n++ {
-		err := t.Add(rand.Float64(), 1)
+		data[n] = rand.Float64()
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		err := t.Add(data[n], 1)
 		if err != nil {
 			b.Error(err)
 		}
 	}
+	b.StopTimer()
 }
 
 func BenchmarkAdd1(b *testing.B) {
