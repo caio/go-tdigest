@@ -37,8 +37,8 @@ data structure in Go.
 ## Disclaimer
 
 I've written this solely with the purpose of understanding how the
-data-structure works, it hasn't been throughly verified nor have I bothered with
-optimizations for now.
+data-structure works, it hasn't been throughly verified nor battle tested
+in a production environment.
 
 ## References
 
