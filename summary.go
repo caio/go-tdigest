@@ -20,10 +20,6 @@ func (c *centroid) Update(x float64, weight uint32) {
 	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
 }
 
-func (c centroid) Equals(other centroid) bool {
-	return c.mean == other.mean && c.count == other.count
-}
-
 var invalidCentroid = centroid{mean: math.NaN(), count: 0}
 
 type summary struct {

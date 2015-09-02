@@ -9,32 +9,6 @@ import (
 	"testing"
 )
 
-func TestCentroid(t *testing.T) {
-	t.Parallel()
-
-	c1 := centroid{0.4, 1}
-	c2 := centroid{0.4, 1}
-	c3 := centroid{0.4, 2}
-
-	if c1.Equals(c2) != c2.Equals(c1) {
-		t.Errorf("Equality is not commutative: c1=%v c2=%v", c1, c2)
-	}
-
-	if !c1.Equals(c2) {
-		t.Errorf("C1 (%v) should be equals to C2 (%v)", c1, c2)
-	}
-
-	if c1.Equals(c3) != false {
-		t.Errorf("C1 (%v) should NOT be equals to C2 (%v)", c1, c3)
-	}
-
-	countBefore := c1.count
-	c1.Update(1, 1)
-
-	if c1.count <= countBefore || c1.count != countBefore+1 {
-		t.Errorf("Update didn't do what was expected to C1 (%v)", c1)
-	}
-}
 func TestTInternals(t *testing.T) {
 	t.Parallel()
 
@@ -56,11 +30,11 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
 	}
 
-	if !tdigest.summary.Min().Equals(centroid{0.4, 1}) {
+	if tdigest.summary.Min().mean != 0.4 {
 		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
 	}
 
-	if !tdigest.summary.Max().Equals(centroid{0.5, 1}) {
+	if tdigest.summary.Max().mean != 0.5 {
 		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
 	}
 
