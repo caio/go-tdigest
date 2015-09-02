@@ -101,7 +101,7 @@ func TestCore(t *testing.T) {
 	checkSorted(s, t)
 
 	if s.Len() != 0 {
-		t.Errorf("Still have some items after attempting to remove all. %s", s)
+		t.Errorf("Still have some items after attempting to remove all. %v", s)
 	}
 }
 
