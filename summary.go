@@ -1,110 +1,190 @@
 package tdigest
 
+import (
+	"fmt"
+	"math"
+	"sort"
+)
+
+type centroid struct {
+	mean  float64
+	count uint32
+}
+
+func (c centroid) isValid() bool {
+	return !math.IsNaN(c.mean) && c.count > 0
+}
+
+func (c *centroid) Update(x float64, weight uint32) {
+	c.count += weight
+	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
+}
+
+func (c centroid) Equals(other centroid) bool {
+	return c.mean == other.mean && c.count == other.count
+}
+
+var invalidCentroid = centroid{mean: math.NaN(), count: 0}
+
 type summary struct {
-	tree *sortedSlice
+	keys   []float64
+	counts []uint32
 }
 
 func newSummary(initialCapacity uint) *summary {
 	return &summary{
-		tree: newSortedSlice(initialCapacity),
+		keys:   make([]float64, 0, initialCapacity),
+		counts: make([]uint32, 0, initialCapacity),
 	}
 }
 
 func (s summary) Len() int {
-	return s.tree.Len()
+	return len(s.keys)
 }
 
-func (s summary) Min() *centroid {
-	value, _ := s.tree.At(0)
-	if value != nil {
-		return value.(*centroid)
+func (s summary) String() string {
+	return fmt.Sprintf("SortedSlice(size=%d, keys=%v)", len(s.keys), s.keys)
+}
+
+func (s *summary) Add(key float64, value uint32) error {
+
+	if math.IsNaN(key) {
+		return fmt.Errorf("Key must not be NaN")
 	}
+
+	if value == 0 {
+		return fmt.Errorf("Count must be >0")
+	}
+
+	idx := s.FindIndex(key)
+
+	if idx < len(s.keys) && s.keys[idx] == key {
+		return fmt.Errorf("Duplicate key %f", key)
+	}
+
+	s.keys = append(s.keys, math.NaN())
+	s.counts = append(s.counts, 0)
+
+	copy(s.keys[idx+1:], s.keys[idx:])
+	copy(s.counts[idx+1:], s.counts[idx:])
+
+	s.keys[idx] = key
+	s.counts[idx] = value
+
 	return nil
 }
 
-func (s summary) Max() *centroid {
-	value, _ := s.tree.At(s.tree.Len() - 1)
-	if value != nil {
-		return value.(*centroid)
+func (s summary) Find(x float64) centroid {
+	idx := s.FindIndex(x)
+
+	if idx < s.Len() && s.keys[idx] == x {
+		return centroid{x, s.counts[idx]}
 	}
-	return nil
+
+	return invalidCentroid
 }
 
-func (s *summary) Add(c *centroid) {
-	s.tree.Add(c.mean, c)
+func (s summary) FindIndex(x float64) int {
+	// FIXME When is linear scan better than binsearch()?
+	//       should I even bother?
+	if len(s.keys) < 30 {
+		for i, item := range s.keys {
+			if item >= x {
+				return i
+			}
+		}
+		return len(s.keys)
+	}
+
+	return sort.Search(len(s.keys), func(i int) bool {
+		return s.keys[i] >= x
+	})
 }
 
-func (s summary) Data() []*centroid {
-	data := make([]*centroid, 0, s.tree.Len())
-	s.tree.Iterate(func(item interface{}) bool {
-		data = append(data, item.(*centroid))
+func (s *summary) Remove(x float64) centroid {
+	idx := s.FindIndex(x)
+
+	if idx >= s.Len() || s.keys[idx] != x {
+		return invalidCentroid
+	}
+
+	removed := s.counts[idx]
+
+	s.keys = append(s.keys[:idx], s.keys[idx+1:]...)
+	s.counts = append(s.counts[:idx], s.counts[idx+1:]...)
+
+	return centroid{x, removed}
+}
+
+func (s summary) At(index int) centroid {
+	if s.Len()-1 < index || index < 0 {
+		return invalidCentroid
+	}
+
+	return centroid{s.keys[index], s.counts[index]}
+}
+
+func (s summary) Iterate(f func(c centroid) bool) {
+	for i := 0; i < s.Len(); i++ {
+		if !f(centroid{s.keys[i], s.counts[i]}) {
+			break
+		}
+	}
+}
+
+func (s summary) Min() centroid {
+	return s.At(0)
+}
+
+func (s summary) Max() centroid {
+	return s.At(s.Len() - 1)
+}
+
+func (s summary) Data() []centroid {
+	data := make([]centroid, 0, s.Len())
+	s.Iterate(func(c centroid) bool {
+		data = append(data, c)
 		return true
 	})
-
 	return data
 }
 
-func (s summary) Find(c *centroid) *centroid {
-	f := s.tree.Find(c.mean)
-	if f != nil {
-		return f.(*centroid)
-	}
-	return nil
+func (s summary) successorAndPredecessorItems(mean float64) (centroid, centroid) {
+	idx := s.FindIndex(mean)
+	return s.At(idx + 1), s.At(idx - 1)
 }
 
-func (s *summary) Delete(c *centroid) *centroid {
-	removed := s.tree.Remove(c.mean)
-	if removed != nil {
-		return removed.(*centroid)
-	}
-	return nil
-}
-
-func (s summary) IterInOrderWith(f func(item interface{}) bool) {
-	s.tree.Iterate(f)
-}
-
-func (s summary) successorAndPredecessorItems(c *centroid) (*centroid, *centroid) {
-	idx := s.tree.FindIndex(c.mean)
-
-	succ, _ := s.tree.At(idx + 1)
-	pred, _ := s.tree.At(idx - 1)
-
-	return succ.(*centroid), pred.(*centroid)
-}
-
-func (s summary) ceilingAndFloorItems(c *centroid) (*centroid, *centroid) {
-	idx := s.tree.FindIndex(c.mean)
+func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
+	idx := s.FindIndex(mean)
 
 	// Case 1: item is greater than all items in the summary
-	if idx == s.tree.Len() {
-		return nil, s.Max()
+	if idx == s.Len() {
+		return invalidCentroid, s.Max()
 	}
 
-	item, _ := s.tree.At(idx)
+	item := s.At(idx)
 
 	// Case 2: item exists in the summary
-	if item != nil && c.Equals(item.(*centroid)) {
-		return item.(*centroid), item.(*centroid)
+	if item.isValid() && mean == item.mean {
+		return item, item
 	}
 
 	// Case 3: item is smaller than all items in the summary
 	if idx == 0 {
-		return s.Min(), nil
+		return s.Min(), invalidCentroid
 	}
 
-	var ceil, floor *centroid
+	return item, s.At(idx - 1)
+}
 
-	ceilP := item
-	floorP, _ := s.tree.At(idx - 1)
-
-	if ceilP != nil {
-		ceil = ceilP.(*centroid)
+func (s summary) sumUntilMean(mean float64) uint32 {
+	var cumSum uint32
+	for i := 0; i < len(s.keys); i++ {
+		if s.keys[i] < mean {
+			cumSum += s.counts[i]
+		} else {
+			break
+		}
 	}
-	if floorP != nil {
-		floor = floorP.(*centroid)
-	}
-
-	return ceil, floor
-
+	return cumSum
 }

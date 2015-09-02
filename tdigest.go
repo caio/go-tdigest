@@ -8,39 +8,6 @@ import (
 	"math/rand"
 )
 
-type centroid struct {
-	mean  float64
-	count uint32
-}
-
-func newCentroid(mean float64, count uint32) *centroid {
-	return &centroid{mean: mean, count: count}
-}
-
-func (c centroid) String() string {
-	return fmt.Sprintf("C<m=%.6f,c=%d>", c.mean, c.count)
-}
-
-func (c centroid) Equals(other *centroid) bool {
-	return c.mean == other.mean && c.count == other.count
-}
-
-func (c *centroid) Update(x float64, weight uint32) {
-	c.count += weight
-	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
-}
-
-func centroidLess(p, q interface{}) bool {
-	res := p.(*centroid).mean < q.(*centroid).mean
-	return res
-}
-
-func centroidLessOrEquals(p, q interface{}) bool {
-	a := p.(*centroid).mean
-	b := q.(*centroid).mean
-	return a <= b
-}
-
 // TDigest is a quantile summary structure
 type TDigest struct {
 	summary     *summary
@@ -83,18 +50,18 @@ func (t *TDigest) Percentile(p float64) float64 {
 	found := false
 	var result float64
 
-	t.summary.IterInOrderWith(func(item interface{}) bool {
-		k := float64(item.(*centroid).count)
+	t.summary.Iterate(func(item centroid) bool {
+		k := float64(item.count)
 
 		if p < total+k {
 			if i == 0 || i+1 == t.summary.Len() {
-				result = item.(*centroid).mean
+				result = item.mean
 				found = true
 				return false
 			}
-			succ, pred := t.summary.successorAndPredecessorItems(item.(*centroid))
+			succ, pred := t.summary.successorAndPredecessorItems(item.mean)
 			delta := (succ.mean - pred.mean) / 2
-			result = item.(*centroid).mean + ((p-total)/k-0.5)*delta
+			result = item.mean + ((p-total)/k-0.5)*delta
 			found = true
 			return false
 		}
@@ -123,14 +90,12 @@ func (t *TDigest) Add(value float64, count uint32) error {
 
 	t.count += count
 
-	c := newCentroid(value, count)
-
 	if t.summary.Len() == 0 {
-		t.addCentroid(c)
+		t.addCentroid(value, count)
 		return nil
 	}
 
-	candidates := t.findNearestCentroids(c)
+	candidates := t.findNearestCentroids(value)
 
 	for len(candidates) > 0 && count > 0 {
 		j := rand.Intn(len(candidates))
@@ -151,7 +116,7 @@ func (t *TDigest) Add(value float64, count uint32) error {
 	}
 
 	if count > 0 {
-		t.addCentroid(newCentroid(value, count))
+		t.addCentroid(value, count)
 	}
 
 	if float64(t.summary.Len()) > 20*t.compression {
@@ -200,7 +165,7 @@ func (t *TDigest) Merge(other *TDigest) {
 	}
 }
 
-func shuffle(data []*centroid) {
+func shuffle(data []centroid) {
 	for i := len(data) - 1; i > 1; i-- {
 		other := rand.Intn(i + 1)
 		tmp := data[other]
@@ -217,15 +182,15 @@ func estimateCapacity(compression float64) uint {
 	return uint(compression) * 10
 }
 
-func (t *TDigest) updateCentroid(c *centroid, mean float64, weight uint32) {
-	deleted := t.summary.Delete(c)
+func (t *TDigest) updateCentroid(c *centroid, mean float64, count uint32) {
+	deleted := t.summary.Remove(c.mean)
 
-	if deleted == nil {
-		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %s. %s", c, t))
+	if !deleted.isValid() {
+		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %v. %v", c, t))
 	}
 
-	deleted.Update(mean, weight)
-	t.addCentroid(deleted)
+	deleted.Update(mean, count)
+	t.addCentroid(deleted.mean, deleted.count)
 }
 
 func (t *TDigest) threshold(q float64) float64 {
@@ -233,52 +198,43 @@ func (t *TDigest) threshold(q float64) float64 {
 }
 
 func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
-	var cumSum uint32
-
-	t.summary.IterInOrderWith(func(i interface{}) bool {
-		if !centroidLess(i.(*centroid), c) {
-			return false
-		}
-
-		cumSum += i.(*centroid).count
-
-		return true
-	})
-
+	cumSum := t.summary.sumUntilMean(c.mean)
 	return (float64(c.count)/2.0 + float64(cumSum)) / float64(t.count)
 }
 
-func (t *TDigest) addCentroid(c *centroid) {
-	current := t.summary.Find(c)
+func (t *TDigest) addCentroid(mean float64, count uint32) {
+	current := t.summary.Find(mean)
 
-	if current != nil {
-		t.summary.Delete(current)
-		c.Update(current.mean, current.count)
+	if current.isValid() {
+		removed := t.summary.Remove(current.mean)
+		removed.Update(mean, count)
+		// FIXME oftentimes this can be done inplace. Care?
+		t.summary.Add(removed.mean, removed.count)
 	}
 
-	t.summary.Add(c)
+	t.summary.Add(mean, count)
 }
 
-func (t *TDigest) findNearestCentroids(c *centroid) []*centroid {
-	ceil, floor := t.summary.ceilingAndFloorItems(c)
+func (t *TDigest) findNearestCentroids(mean float64) []*centroid {
+	ceil, floor := t.summary.ceilingAndFloorItems(mean)
 
-	if ceil == nil && floor == nil {
+	if !ceil.isValid() && !floor.isValid() {
 		panic("findNearestCentroids called on an empty tree")
 	}
 
-	if ceil == nil {
-		return []*centroid{floor}
+	if !ceil.isValid() {
+		return []*centroid{&floor}
 	}
 
-	if floor == nil {
-		return []*centroid{ceil}
+	if !floor.isValid() {
+		return []*centroid{&ceil}
 	}
 
-	if math.Abs(floor.mean-c.mean) < math.Abs(ceil.mean-c.mean) {
-		return []*centroid{floor}
-	} else if math.Abs(floor.mean-c.mean) == math.Abs(ceil.mean-c.mean) && !floor.Equals(ceil) {
-		return []*centroid{floor, ceil}
+	if math.Abs(floor.mean-mean) < math.Abs(ceil.mean-mean) {
+		return []*centroid{&floor}
+	} else if math.Abs(floor.mean-mean) == math.Abs(ceil.mean-mean) && floor.mean != ceil.mean {
+		return []*centroid{&floor, &ceil}
 	} else {
-		return []*centroid{ceil}
+		return []*centroid{&ceil}
 	}
 }

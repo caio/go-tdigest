@@ -12,101 +12,29 @@ import (
 func TestCentroid(t *testing.T) {
 	t.Parallel()
 
-	c1 := newCentroid(0.4, 1)
-	c2 := newCentroid(0.4, 1)
-	c3 := newCentroid(0.4, 2)
+	c1 := centroid{0.4, 1}
+	c2 := centroid{0.4, 1}
+	c3 := centroid{0.4, 2}
 
 	if c1.Equals(c2) != c2.Equals(c1) {
-		t.Errorf("Equality is not commutative: c1=%s c2=%s", c1, c2)
+		t.Errorf("Equality is not commutative: c1=%v c2=%v", c1, c2)
 	}
 
 	if !c1.Equals(c2) {
-		t.Errorf("C1 (%s) should be equals to C2 (%s)", c1, c2)
+		t.Errorf("C1 (%v) should be equals to C2 (%v)", c1, c2)
 	}
 
 	if c1.Equals(c3) != false {
-		t.Errorf("C1 (%s) should NOT be equals to C2 (%s)", c1, c3)
+		t.Errorf("C1 (%v) should NOT be equals to C2 (%v)", c1, c3)
 	}
 
 	countBefore := c1.count
 	c1.Update(1, 1)
 
 	if c1.count <= countBefore || c1.count != countBefore+1 {
-		t.Errorf("Update didn't do what was expected to C1 (%s)", c1)
+		t.Errorf("Update didn't do what was expected to C1 (%v)", c1)
 	}
 }
-
-func TestCeilingAndFloor(t *testing.T) {
-	t.Parallel()
-	tdigest := New(100)
-
-	ceil, floor := tdigest.summary.ceilingAndFloorItems(newCentroid(1, 1))
-
-	if ceil != nil || floor != nil {
-		t.Errorf("Empty centroids must return invalid ceiling and floor items")
-	}
-
-	c1 := newCentroid(0.4, 1)
-	tdigest.addCentroid(c1)
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.3, 1))
-
-	if floor != nil || !c1.Equals(ceil) {
-		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%s, floor=%s", ceil, floor)
-	}
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.5, 1))
-
-	if ceil != nil || !c1.Equals(floor) {
-		t.Errorf("Expected to find a ceiling and NOT find a floor. ceil=%s, floor=%s", ceil, floor)
-	}
-
-	c2 := newCentroid(0.1, 2)
-	tdigest.addCentroid(c2)
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.2, 1))
-
-	if ceil == nil || floor == nil || !c1.Equals(ceil) || !c2.Equals(floor) {
-		t.Errorf("Expected to find a ceiling and a floor. ceil=%s, floor=%s", ceil, floor)
-	}
-
-	c3 := newCentroid(0.21, 3)
-	tdigest.addCentroid(c3)
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.2, 1))
-
-	if !c3.Equals(ceil) || !c2.Equals(floor) {
-		t.Errorf("Ceil should've shrunk. ceil=%s, floor=%s", ceil, floor)
-	}
-
-	c4 := newCentroid(0.1999, 1)
-	tdigest.addCentroid(c4)
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.2, 1))
-
-	if !c3.Equals(ceil) || !c4.Equals(floor) {
-		t.Errorf("Floor should've shrunk. ceil=%s, floor=%s", ceil, floor)
-	}
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(10, 1))
-
-	if ceil != nil {
-		t.Errorf("Expected an invalid ceil. Got %s", ceil)
-	}
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(newCentroid(0.0001, 12))
-
-	if floor != nil {
-		t.Errorf("Expected an invalid floor. Got %s", floor)
-	}
-
-	ceil, floor = tdigest.summary.ceilingAndFloorItems(c4)
-
-	if floor == nil || ceil == nil || !c4.Equals(ceil) || !c4.Equals(floor) {
-		t.Errorf("ceiling and floor of an existing item should be the item itself")
-	}
-}
-
 func TestTInternals(t *testing.T) {
 	t.Parallel()
 
@@ -116,42 +44,42 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Percentile() on an empty digest should return NaN. Got: %.4f", tdigest.Percentile(0.1))
 	}
 
-	tdigest.addCentroid(newCentroid(0.4, 1))
+	tdigest.addCentroid(0.4, 1)
 
 	if tdigest.Percentile(0.1) != 0.4 {
 		t.Errorf("Percentile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Percentile(0.1))
 	}
 
-	tdigest.addCentroid(newCentroid(0.5, 1))
+	tdigest.addCentroid(0.5, 1)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
 	}
 
-	if !tdigest.summary.Min().Equals(newCentroid(0.4, 1)) {
-		t.Errorf("Min() returned an unexpected centroid: %s", tdigest.summary.Min())
+	if !tdigest.summary.Min().Equals(centroid{0.4, 1}) {
+		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
 	}
 
-	if !tdigest.summary.Max().Equals(newCentroid(0.5, 1)) {
-		t.Errorf("Min() returned an unexpected centroid: %s", tdigest.summary.Min())
+	if !tdigest.summary.Max().Equals(centroid{0.5, 1}) {
+		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
 	}
 
-	deleted := tdigest.summary.Delete(newCentroid(0.6, 1))
-	if deleted != nil {
-		t.Errorf("Delete() on non-existant centroid should return nil, go this instead: %s", deleted)
+	deleted := tdigest.summary.Remove(0.6)
+	if deleted.isValid() {
+		t.Errorf("Remove() on non-existant centroid should give an invalid return, go this instead: %v", deleted)
 	}
 
-	tdigest.addCentroid(newCentroid(0.4, 2))
-	tdigest.addCentroid(newCentroid(0.4, 3))
+	tdigest.addCentroid(0.4, 2)
+	tdigest.addCentroid(0.4, 3)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Adding centroids of same mean shouldn't change size")
 	}
 
-	y := tdigest.summary.Find(newCentroid(0.4, 1))
+	y := tdigest.summary.Find(0.4)
 
 	if y.count != 6 || y.mean != 0.4 {
-		t.Errorf("Adding centroids with same mean should increment the count only. Got %s", y)
+		t.Errorf("Adding centroids with same mean should increment the count only. Got %v", y)
 	}
 
 	err := tdigest.Add(0, 0)
@@ -221,8 +149,8 @@ func TestIntegers(t *testing.T) {
 	}
 
 	var tot uint32
-	tdigest.summary.IterInOrderWith(func(item interface{}) bool {
-		tot += item.(*centroid).count
+	tdigest.summary.Iterate(func(item centroid) bool {
+		tot += item.count
 		return true
 	})
 
@@ -332,7 +260,7 @@ func TestSerialization(t *testing.T) {
 	t2, _ := FromBytes(bytes.NewReader(serialized))
 
 	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
-		t.Errorf("Deserialized to something different. t1=%s t2=%s serialized=%x", t1, t2, serialized)
+		t.Errorf("Deserialized to something different. t1=%s t2=%s serialized=%v", t1, t2, serialized)
 	}
 }
 
