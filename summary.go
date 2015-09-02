@@ -38,10 +38,6 @@ func (s summary) Len() int {
 	return len(s.keys)
 }
 
-func (s summary) String() string {
-	return fmt.Sprintf("SortedSlice(size=%d, keys=%v)", len(s.keys), s.keys)
-}
-
 func (s *summary) Add(key float64, value uint32) error {
 
 	if math.IsNaN(key) {
