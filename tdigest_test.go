@@ -18,13 +18,13 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Percentile() on an empty digest should return NaN. Got: %.4f", tdigest.Percentile(0.1))
 	}
 
-	tdigest.addCentroid(0.4, 1)
+	tdigest.Add(0.4, 1)
 
 	if tdigest.Percentile(0.1) != 0.4 {
 		t.Errorf("Percentile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Percentile(0.1))
 	}
 
-	tdigest.addCentroid(0.5, 1)
+	tdigest.Add(0.5, 1)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
@@ -43,8 +43,8 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Remove() on non-existant centroid should give an invalid return, go this instead: %v", deleted)
 	}
 
-	tdigest.addCentroid(0.4, 2)
-	tdigest.addCentroid(0.4, 3)
+	tdigest.Add(0.4, 2)
+	tdigest.Add(0.4, 3)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Adding centroids of same mean shouldn't change size")
@@ -60,6 +60,14 @@ func TestTInternals(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected Add() to error out with input (0,0)")
+	}
+
+	if tdigest.Percentile(0.9999999) != tdigest.summary.Max().mean {
+		t.Errorf("High quantiles with little data should give out the MAX recorded mean")
+	}
+
+	if tdigest.Percentile(0.0000001) != tdigest.summary.Min().mean {
+		t.Errorf("Low quantiles with little data should give out the MIN recorded mean")
 	}
 }
 
