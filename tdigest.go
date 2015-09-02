@@ -174,10 +174,6 @@ func shuffle(data []centroid) {
 	}
 }
 
-func (t TDigest) String() string {
-	return fmt.Sprintf("TD<compression=%.2f, count=%d, centroids=%d>", t.compression, t.count, t.summary.Len())
-}
-
 func estimateCapacity(compression float64) uint {
 	return uint(compression) * 10
 }
