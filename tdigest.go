@@ -30,7 +30,7 @@ func New(compression float64) *TDigest {
 	}
 }
 
-// Percentile returns the desired percentile estimation.
+// Quantile returns the desired percentile estimation.
 // Values of p must be between 0 and 1 (inclusive), will panic otherwise.
 func (t *TDigest) Quantile(q float64) float64 {
 	if q < 0 || q > 1 {
