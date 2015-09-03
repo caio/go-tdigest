@@ -9,6 +9,7 @@ import (
 type centroid struct {
 	mean  float64
 	count uint32
+	index int
 }
 
 func (c centroid) isValid() bool {
@@ -71,7 +72,7 @@ func (s summary) Find(x float64) centroid {
 	idx := s.FindIndex(x)
 
 	if idx < s.Len() && s.keys[idx] == x {
-		return centroid{x, s.counts[idx]}
+		return centroid{x, s.counts[idx], idx}
 	}
 
 	return invalidCentroid
@@ -106,7 +107,7 @@ func (s *summary) Remove(x float64) centroid {
 	s.keys = append(s.keys[:idx], s.keys[idx+1:]...)
 	s.counts = append(s.counts[:idx], s.counts[idx+1:]...)
 
-	return centroid{x, removed}
+	return centroid{x, removed, idx}
 }
 
 func (s summary) At(index int) centroid {
@@ -114,12 +115,12 @@ func (s summary) At(index int) centroid {
 		return invalidCentroid
 	}
 
-	return centroid{s.keys[index], s.counts[index]}
+	return centroid{s.keys[index], s.counts[index], index}
 }
 
 func (s summary) Iterate(f func(c centroid) bool) {
 	for i := 0; i < s.Len(); i++ {
-		if !f(centroid{s.keys[i], s.counts[i]}) {
+		if !f(centroid{s.keys[i], s.counts[i], i}) {
 			break
 		}
 	}
@@ -183,7 +184,7 @@ func (s summary) sumUntilMean(mean float64) uint32 {
 }
 
 func (s *summary) updateAt(index int, mean float64, count uint32) {
-	c := centroid{s.keys[index], s.counts[index]}
+	c := centroid{s.keys[index], s.counts[index], index}
 	c.Update(mean, count)
 
 	oldMean := s.keys[index]
