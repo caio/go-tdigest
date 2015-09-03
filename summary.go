@@ -50,8 +50,9 @@ func (s *summary) Add(key float64, value uint32) error {
 
 	idx := s.FindIndex(key)
 
-	if idx < len(s.keys) && s.keys[idx] == key {
-		return fmt.Errorf("Duplicate key %f", key)
+	if s.meanAtIndexIs(idx, key) {
+		s.updateAt(idx, key, value)
+		return nil
 	}
 
 	s.keys = append(s.keys, math.NaN())

@@ -198,16 +198,7 @@ func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
 }
 
 func (t *TDigest) addCentroid(mean float64, count uint32) {
-	current := t.summary.Find(mean)
-
-	if current.isValid() {
-		removed := t.summary.Remove(current.mean)
-		removed.Update(mean, count)
-		// FIXME oftentimes this can be done inplace. Care?
-		t.summary.Add(removed.mean, removed.count)
-	} else {
-		t.summary.Add(mean, count)
-	}
+	t.summary.Add(mean, count)
 }
 
 func (t *TDigest) findNearestCentroids(mean float64) []*centroid {

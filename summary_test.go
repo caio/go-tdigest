@@ -37,10 +37,6 @@ func TestBasics(t *testing.T) {
 	if s.Add(1, 0) == nil {
 		t.Errorf("Adding count=0 shouldn't be allowed")
 	}
-
-	if s.Add(1, 2) == nil {
-		t.Errorf("Shouldn't allow duplicate keys")
-	}
 }
 
 func checkSorted(s *summary, t *testing.T) {
