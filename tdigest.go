@@ -91,7 +91,7 @@ func (t *TDigest) Add(value float64, count uint32) error {
 	t.count += count
 
 	if t.summary.Len() == 0 {
-		t.addCentroid(value, count)
+		t.summary.Add(value, count)
 		return nil
 	}
 
@@ -109,14 +109,14 @@ func (t *TDigest) Add(value float64, count uint32) error {
 		}
 
 		deltaW := math.Min(t.threshold(quantile)-float64(chosen.count), float64(count))
-		t.updateCentroid(chosen, value, uint32(deltaW))
+		t.summary.updateAt(chosen.index, value, uint32(deltaW))
 		count -= uint32(deltaW)
 
 		candidates = append(candidates[:j], candidates[j+1:]...)
 	}
 
 	if count > 0 {
-		t.addCentroid(value, count)
+		t.summary.Add(value, count)
 	}
 
 	if float64(t.summary.Len()) > 20*t.compression {
@@ -178,10 +178,6 @@ func estimateCapacity(compression float64) uint {
 	return uint(compression) * 10
 }
 
-func (t *TDigest) updateCentroid(c *centroid, mean float64, count uint32) {
-	t.summary.updateAt(c.index, mean, count)
-}
-
 func (t *TDigest) threshold(q float64) float64 {
 	return (4 * float64(t.count) * q * (1 - q)) / t.compression
 }
@@ -189,10 +185,6 @@ func (t *TDigest) threshold(q float64) float64 {
 func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
 	cumSum := t.summary.sumUntilMean(c.mean)
 	return (float64(c.count)/2.0 + float64(cumSum)) / float64(t.count)
-}
-
-func (t *TDigest) addCentroid(mean float64, count uint32) {
-	t.summary.Add(mean, count)
 }
 
 func (t *TDigest) findNearestCentroids(mean float64) []*centroid {
