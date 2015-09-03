@@ -179,14 +179,13 @@ func estimateCapacity(compression float64) uint {
 }
 
 func (t *TDigest) updateCentroid(c *centroid, mean float64, count uint32) {
-	deleted := t.summary.Remove(c.mean)
+	idx := t.summary.FindIndex(c.mean)
 
-	if !deleted.isValid() {
-		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %v. %v", c, t))
+	if !t.summary.meanAtIndexIs(idx, c.mean) {
+		panic(fmt.Sprintf("Trying to update a centroid that doesn't exist: %v. %v", c, t.summary))
 	}
 
-	deleted.Update(mean, count)
-	t.addCentroid(deleted.mean, deleted.count)
+	t.summary.updateAt(idx, mean, count)
 }
 
 func (t *TDigest) threshold(q float64) float64 {

@@ -237,3 +237,27 @@ func TestCeilingAndFloor(t *testing.T) {
 		t.Errorf("ceiling and floor of an existing item should be the item itself")
 	}
 }
+
+func TestAdjustLeftRight(t *testing.T) {
+
+	keys := []float64{1, 2, 3, 4, 9, 5, 6, 7, 8}
+	counts := []uint32{1, 2, 3, 4, 9, 5, 6, 7, 8}
+
+	s := summary{keys: keys, counts: counts}
+
+	s.adjustRight(4)
+
+	if !sort.Float64sAreSorted(s.keys) || s.counts[4] != 5 {
+		t.Errorf("adjustRight should have fixed the keys/counts state. %v %v", s.keys, s.counts)
+	}
+
+	keys = []float64{1, 2, 3, 4, 0, 5, 6, 7, 8}
+	counts = []uint32{1, 2, 3, 4, 0, 5, 6, 7, 8}
+
+	s = summary{keys: keys, counts: counts}
+	s.adjustLeft(4)
+
+	if !sort.Float64sAreSorted(s.keys) || s.counts[4] != 4 {
+		t.Errorf("adjustLeft should have fixed the keys/counts state. %v %v", s.keys, s.counts)
+	}
+}

@@ -180,3 +180,36 @@ func (s summary) sumUntilMean(mean float64) uint32 {
 	}
 	return cumSum
 }
+
+func (s *summary) updateAt(index int, mean float64, count uint32) {
+	c := centroid{s.keys[index], s.counts[index]}
+	c.Update(mean, count)
+
+	oldMean := s.keys[index]
+	s.keys[index] = c.mean
+	s.counts[index] = c.count
+
+	if c.mean > oldMean {
+		s.adjustRight(index)
+	} else if c.mean < oldMean {
+		s.adjustLeft(index)
+	}
+}
+
+func (s *summary) adjustRight(index int) {
+	for i := index + 1; i < len(s.keys) && s.keys[i-1] > s.keys[i]; i++ {
+		s.keys[i-1], s.keys[i] = s.keys[i], s.keys[i-1]
+		s.counts[i-1], s.counts[i] = s.counts[i], s.counts[i-1]
+	}
+}
+
+func (s *summary) adjustLeft(index int) {
+	for i := index - 1; i >= 0 && s.keys[i] > s.keys[i+1]; i-- {
+		s.keys[i], s.keys[i+1] = s.keys[i+1], s.keys[i]
+		s.counts[i], s.counts[i+1] = s.counts[i+1], s.counts[i]
+	}
+}
+
+func (s summary) meanAtIndexIs(index int, mean float64) bool {
+	return index < len(s.keys) && s.keys[index] == mean
+}
