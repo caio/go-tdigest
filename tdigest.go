@@ -206,9 +206,9 @@ func (t *TDigest) addCentroid(mean float64, count uint32) {
 		removed.Update(mean, count)
 		// FIXME oftentimes this can be done inplace. Care?
 		t.summary.Add(removed.mean, removed.count)
+	} else {
+		t.summary.Add(mean, count)
 	}
-
-	t.summary.Add(mean, count)
 }
 
 func (t *TDigest) findNearestCentroids(mean float64) []*centroid {
