@@ -38,11 +38,6 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
 	}
 
-	deleted := tdigest.summary.Remove(0.6)
-	if deleted.isValid() {
-		t.Errorf("Remove() on non-existant centroid should give an invalid return, go this instead: %v", deleted)
-	}
-
 	tdigest.Add(0.4, 2)
 	tdigest.Add(0.4, 3)
 

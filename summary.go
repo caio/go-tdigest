@@ -95,21 +95,6 @@ func (s summary) FindIndex(x float64) int {
 	})
 }
 
-func (s *summary) Remove(x float64) centroid {
-	idx := s.FindIndex(x)
-
-	if idx >= s.Len() || s.keys[idx] != x {
-		return invalidCentroid
-	}
-
-	removed := s.counts[idx]
-
-	s.keys = append(s.keys[:idx], s.keys[idx+1:]...)
-	s.counts = append(s.counts[:idx], s.counts[idx+1:]...)
-
-	return centroid{x, removed, idx}
-}
-
 func (s summary) At(index int) centroid {
 	if s.Len()-1 < index || index < 0 {
 		return invalidCentroid

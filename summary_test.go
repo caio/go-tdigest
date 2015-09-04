@@ -16,12 +16,6 @@ func TestBasics(t *testing.T) {
 		if item.isValid() {
 			t.Errorf("Found something for non existing key %.0f: %v", n, item)
 		}
-
-		item = s.Remove(n)
-
-		if item.isValid() {
-			t.Errorf("Delete on empty structure returned something: %v", item)
-		}
 	}
 
 	err := s.Add(1, 1)
@@ -84,20 +78,6 @@ func TestCore(t *testing.T) {
 		if !c.isValid() || c.count != v {
 			t.Errorf("Find(%.0f) returned %d, expected %d", k, c.count, v)
 		}
-	}
-
-	for k, v := range testData {
-		deleted := s.Remove(k)
-		if !deleted.isValid() || deleted.count != v {
-			t.Errorf("Delete(%f) returned %d, expected %d", k, deleted.count, v)
-		}
-		checkSorted(s, t)
-	}
-
-	checkSorted(s, t)
-
-	if s.Len() != 0 {
-		t.Errorf("Still have some items after attempting to remove all. %v", s)
 	}
 }
 
