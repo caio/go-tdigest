@@ -8,7 +8,12 @@ import (
 	"math/rand"
 )
 
-// TDigest is a quantile summary structure
+// TDigest is a quantile approximation data structure.
+// Typical T-Digest use cases involve accumulating metrics on several
+// distinct nodes of a cluster and then merging them together to get
+// a system-wide quantile overview. Things such as: sensory data from
+// IoT devices, quantiles over enormous document datasets (think
+// ElasticSearch), performance metrics for distributed systems, etc.
 type TDigest struct {
 	summary     *summary
 	compression float64
