@@ -19,9 +19,10 @@ type TDigest struct {
 // The compression parameter rules the threshold in which samples are
 // merged together - the more often distinct samples are merged the more
 // precision is lost. Compression should be tuned according to your data
-// distribution, but a value of 10 is often good enough. A higher
-// compression value means holding more centroids in memory, which means
-// a bigger serialization payload and higher memory footprint.
+// distribution, but a value of 100 is often good enough. A higher
+// compression value means holding more centroids in memory (thus: better
+// precision), which means a bigger serialization payload and higher
+// memory footprint.
 func New(compression float64) *TDigest {
 	return &TDigest{
 		compression: compression,
