@@ -28,7 +28,12 @@ type TDigest struct {
 // compression value means holding more centroids in memory (thus: better
 // precision), which means a bigger serialization payload and higher
 // memory footprint.
+// Compression must be a value greater of equal to 1, will panic
+// otherwise.
 func New(compression float64) *TDigest {
+	if compression < 1 {
+		panic("Compression must be >= 1.0")
+	}
 	return &TDigest{
 		compression: compression,
 		summary:     newSummary(estimateCapacity(compression)),
