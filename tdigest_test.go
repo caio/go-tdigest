@@ -204,6 +204,36 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func shouldPanic(f func(), t *testing.T, message string) {
+	defer func() {
+		tryRecover := recover()
+		if tryRecover == nil {
+			t.Errorf(message)
+		}
+	}()
+	f()
+}
+
+func TestPanic(t *testing.T) {
+	shouldPanic(func() {
+		New(0.5)
+	}, t, "Compression < 1 should panic!")
+
+	tdigest := New(100)
+
+	shouldPanic(func() {
+		tdigest.Quantile(-42)
+	}, t, "Quantile < 0 should panic!")
+
+	shouldPanic(func() {
+		tdigest.Quantile(42)
+	}, t, "Quantile > 1 should panic!")
+
+	shouldPanic(func() {
+		tdigest.findNearestCentroids(0.2)
+	}, t, "findNearestCentroids on empty summary should panic!")
+}
+
 func benchmarkAdd(compression float64, b *testing.B) {
 	t := New(compression)
 
