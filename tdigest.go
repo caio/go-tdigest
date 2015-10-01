@@ -15,7 +15,7 @@ import (
 // IoT devices, quantiles over enormous document datasets (think
 // ElasticSearch), performance metrics for distributed systems, etc.
 type TDigest struct {
-	summary     *summary
+	Summary     *summary
 	compression float64
 	count       uint32
 }
@@ -36,7 +36,7 @@ func New(compression float64) *TDigest {
 	}
 	return &TDigest{
 		compression: compression,
-		summary:     newSummary(estimateCapacity(compression)),
+		Summary:     newSummary(estimateCapacity(compression)),
 		count:       0,
 	}
 }
@@ -48,10 +48,10 @@ func (t *TDigest) Quantile(q float64) float64 {
 		panic("q must be between 0 and 1 (inclusive)")
 	}
 
-	if t.summary.Len() == 0 {
+	if t.Summary.Len() == 0 {
 		return math.NaN()
-	} else if t.summary.Len() == 1 {
-		return t.summary.Min().mean
+	} else if t.Summary.Len() == 1 {
+		return t.Summary.Min().Mean
 	}
 
 	q *= float64(t.count)
@@ -61,18 +61,18 @@ func (t *TDigest) Quantile(q float64) float64 {
 	found := false
 	var result float64
 
-	t.summary.Iterate(func(item centroid) bool {
-		k := float64(item.count)
+	t.Summary.Iterate(func(item Centroid) bool {
+		k := float64(item.Count)
 
 		if q < total+k {
-			if i == 0 || i+1 == t.summary.Len() {
-				result = item.mean
+			if i == 0 || i+1 == t.Summary.Len() {
+				result = item.Mean
 				found = true
 				return false
 			}
-			succ, pred := t.summary.successorAndPredecessorItems(item.mean)
-			delta := (succ.mean - pred.mean) / 2
-			result = item.mean + ((q-total)/k-0.5)*delta
+			succ, pred := t.Summary.successorAndPredecessorItems(item.Mean)
+			delta := (succ.Mean - pred.Mean) / 2
+			result = item.Mean + ((q-total)/k-0.5)*delta
 			found = true
 			return false
 		}
@@ -85,7 +85,7 @@ func (t *TDigest) Quantile(q float64) float64 {
 	if found {
 		return result
 	}
-	return t.summary.Max().mean
+	return t.Summary.Max().Mean
 }
 
 // Add registers a new sample in the digest.
@@ -101,8 +101,8 @@ func (t *TDigest) Add(value float64, count uint32) error {
 
 	t.count += count
 
-	if t.summary.Len() == 0 {
-		t.summary.Add(value, count)
+	if t.Summary.Len() == 0 {
+		t.Summary.Add(value, count)
 		return nil
 	}
 
@@ -114,23 +114,23 @@ func (t *TDigest) Add(value float64, count uint32) error {
 
 		quantile := t.computeCentroidQuantile(chosen)
 
-		if float64(chosen.count+count) > t.threshold(quantile) {
+		if float64(chosen.Count+count) > t.threshold(quantile) {
 			candidates = append(candidates[:j], candidates[j+1:]...)
 			continue
 		}
 
-		deltaW := math.Min(t.threshold(quantile)-float64(chosen.count), float64(count))
-		t.summary.updateAt(chosen.index, value, uint32(deltaW))
+		deltaW := math.Min(t.threshold(quantile)-float64(chosen.Count), float64(count))
+		t.Summary.updateAt(chosen.index, value, uint32(deltaW))
 		count -= uint32(deltaW)
 
 		candidates = append(candidates[:j], candidates[j+1:]...)
 	}
 
 	if count > 0 {
-		t.summary.Add(value, count)
+		t.Summary.Add(value, count)
 	}
 
-	if float64(t.summary.Len()) > 20*t.compression {
+	if float64(t.Summary.Len()) > 20*t.compression {
 		t.Compress()
 	}
 
@@ -143,18 +143,18 @@ func (t *TDigest) Add(value float64, count uint32) error {
 // automatically after a certain amount of distinct samples have been
 // stored.
 func (t *TDigest) Compress() {
-	if t.summary.Len() <= 1 {
+	if t.Summary.Len() <= 1 {
 		return
 	}
 
-	oldTree := t.summary
-	t.summary = newSummary(estimateCapacity(t.compression))
+	oldTree := t.Summary
+	t.Summary = newSummary(estimateCapacity(t.compression))
 
 	nodes := oldTree.Data()
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Add(item.mean, item.count)
+		t.Add(item.Mean, item.Count)
 	}
 }
 
@@ -164,19 +164,19 @@ func (t *TDigest) Compress() {
 // samples. This is particularly important on a scatter-gather/map-reduce
 // scenario.
 func (t *TDigest) Merge(other *TDigest) {
-	if other.summary.Len() == 0 {
+	if other.Summary.Len() == 0 {
 		return
 	}
 
-	nodes := other.summary.Data()
+	nodes := other.Summary.Data()
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Add(item.mean, item.count)
+		t.Add(item.Mean, item.Count)
 	}
 }
 
-func shuffle(data []centroid) {
+func shuffle(data []Centroid) {
 	for i := len(data) - 1; i > 1; i-- {
 		other := rand.Intn(i + 1)
 		tmp := data[other]
@@ -193,31 +193,31 @@ func (t *TDigest) threshold(q float64) float64 {
 	return (4 * float64(t.count) * q * (1 - q)) / t.compression
 }
 
-func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
-	cumSum := t.summary.sumUntilMean(c.mean)
-	return (float64(c.count)/2.0 + float64(cumSum)) / float64(t.count)
+func (t *TDigest) computeCentroidQuantile(c *Centroid) float64 {
+	cumSum := t.Summary.sumUntilMean(c.Mean)
+	return (float64(c.Count)/2.0 + float64(cumSum)) / float64(t.count)
 }
 
-func (t *TDigest) findNearestCentroids(mean float64) []*centroid {
-	ceil, floor := t.summary.ceilingAndFloorItems(mean)
+func (t *TDigest) findNearestCentroids(mean float64) []*Centroid {
+	ceil, floor := t.Summary.ceilingAndFloorItems(mean)
 
 	if !ceil.isValid() && !floor.isValid() {
 		panic("findNearestCentroids called on an empty tree")
 	}
 
 	if !ceil.isValid() {
-		return []*centroid{&floor}
+		return []*Centroid{&floor}
 	}
 
 	if !floor.isValid() {
-		return []*centroid{&ceil}
+		return []*Centroid{&ceil}
 	}
 
-	if math.Abs(floor.mean-mean) < math.Abs(ceil.mean-mean) {
-		return []*centroid{&floor}
-	} else if math.Abs(floor.mean-mean) == math.Abs(ceil.mean-mean) && floor.mean != ceil.mean {
-		return []*centroid{&floor, &ceil}
+	if math.Abs(floor.Mean-mean) < math.Abs(ceil.Mean-mean) {
+		return []*Centroid{&floor}
+	} else if math.Abs(floor.Mean-mean) == math.Abs(ceil.Mean-mean) && floor.Mean != ceil.Mean {
+		return []*Centroid{&floor, &ceil}
 	} else {
-		return []*centroid{&ceil}
+		return []*Centroid{&ceil}
 	}
 }

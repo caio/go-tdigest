@@ -28,16 +28,16 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	err = binary.Write(buffer, endianess, int32(t.summary.Len()))
+	err = binary.Write(buffer, endianess, int32(t.Summary.Len()))
 
 	if err != nil {
 		return nil, err
 	}
 
 	var x float64
-	t.summary.Iterate(func(item centroid) bool {
-		delta := item.mean - x
-		x = item.mean
+	t.Summary.Iterate(func(item Centroid) bool {
+		delta := item.Mean - x
+		x = item.Mean
 		err = binary.Write(buffer, endianess, float32(delta))
 
 		return err == nil
@@ -46,8 +46,8 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	t.summary.Iterate(func(item centroid) bool {
-		err = encodeUint(buffer, item.count)
+	t.Summary.Iterate(func(item Centroid) bool {
+		err = encodeUint(buffer, item.Count)
 		return err == nil
 	})
 	if err != nil {
