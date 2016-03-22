@@ -75,8 +75,8 @@ func TestCore(t *testing.T) {
 
 	for k, v := range testData {
 		c := s.Find(k)
-		if !c.isValid() || c.count != v {
-			t.Errorf("Find(%.0f) returned %d, expected %d", k, c.count, v)
+		if !c.isValid() || c.Count != v {
+			t.Errorf("Find(%.0f) returned %d, expected %d", k, c.Count, v)
 		}
 	}
 }
@@ -100,8 +100,8 @@ func TestGetAt(t *testing.T) {
 
 	for i, v := range data {
 		c := s.At(i)
-		if !c.isValid() || c.count != v {
-			t.Errorf("At(%d) = %d. Should've been %d", i, c.count, v)
+		if !c.isValid() || c.Count != v {
+			t.Errorf("At(%d) = %d. Should've been %d", i, c.Count, v)
 		}
 	}
 
@@ -126,7 +126,7 @@ func TestIterate(t *testing.T) {
 	}
 
 	c := 0
-	s.Iterate(func(i centroid) bool {
+	s.Iterate(func(i Centroid) bool {
 		c++
 		return false
 	})
@@ -136,8 +136,8 @@ func TestIterate(t *testing.T) {
 	}
 
 	var tot uint32
-	s.Iterate(func(i centroid) bool {
-		tot += i.count
+	s.Iterate(func(i Centroid) bool {
+		tot += i.Count
 		return true
 	})
 
@@ -159,13 +159,13 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor = s.ceilingAndFloorItems(0.3)
 
-	if floor.isValid() || ceil.mean != 0.4 {
+	if floor.isValid() || ceil.Mean != 0.4 {
 		t.Errorf("Expected to find a ceil and NOT find a floor. ceil=%v, floor=%v", ceil, floor)
 	}
 
 	ceil, floor = s.ceilingAndFloorItems(0.5)
 
-	if ceil.isValid() || floor.mean != 0.4 {
+	if ceil.isValid() || floor.Mean != 0.4 {
 		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%v, floor=%v", ceil, floor)
 	}
 
@@ -173,7 +173,7 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor = s.ceilingAndFloorItems(0.2)
 
-	if ceil.mean != 0.4 || floor.mean != 0.1 {
+	if ceil.Mean != 0.4 || floor.Mean != 0.1 {
 		t.Errorf("Expected to find a ceiling and a floor. ceil=%v, floor=%v", ceil, floor)
 	}
 
@@ -181,7 +181,7 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor = s.ceilingAndFloorItems(0.2)
 
-	if ceil.mean != 0.21 || floor.mean != 0.1 {
+	if ceil.Mean != 0.21 || floor.Mean != 0.1 {
 		t.Errorf("Ceil should've shrunk. ceil=%v, floor=%v", ceil, floor)
 	}
 
@@ -189,7 +189,7 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	ceil, floor = s.ceilingAndFloorItems(0.2)
 
-	if ceil.mean != 0.21 || floor.mean != 0.1999 {
+	if ceil.Mean != 0.21 || floor.Mean != 0.1999 {
 		t.Errorf("Floor should've shrunk. ceil=%v, floor=%v", ceil, floor)
 	}
 
@@ -209,7 +209,7 @@ func TestCeilingAndFloor(t *testing.T) {
 	s.Add(m, 1)
 	ceil, floor = s.ceilingAndFloorItems(m)
 
-	if ceil.mean != m || floor.mean != m {
+	if ceil.Mean != m || floor.Mean != m {
 		t.Errorf("ceiling and floor of an existing item should be the item itself")
 	}
 }

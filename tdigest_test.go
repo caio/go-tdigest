@@ -24,28 +24,28 @@ func TestTInternals(t *testing.T) {
 
 	tdigest.Add(0.5, 1)
 
-	if tdigest.summary.Len() != 2 {
-		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
+	if tdigest.Summary.Len() != 2 {
+		t.Errorf("Expected size 2, got %d", tdigest.Summary.Len())
 	}
 
-	if tdigest.summary.Min().mean != 0.4 {
-		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
+	if tdigest.Summary.Min().Mean != 0.4 {
+		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.Summary.Min())
 	}
 
-	if tdigest.summary.Max().mean != 0.5 {
-		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
+	if tdigest.Summary.Max().Mean != 0.5 {
+		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.Summary.Min())
 	}
 
 	tdigest.Add(0.4, 2)
 	tdigest.Add(0.4, 3)
 
-	if tdigest.summary.Len() != 2 {
+	if tdigest.Summary.Len() != 2 {
 		t.Errorf("Adding centroids of same mean shouldn't change size")
 	}
 
-	y := tdigest.summary.Find(0.4)
+	y := tdigest.Summary.Find(0.4)
 
-	if y.count != 6 || y.mean != 0.4 {
+	if y.Count != 6 || y.Mean != 0.4 {
 		t.Errorf("Adding centroids with same mean should increment the count only. Got %v", y)
 	}
 
@@ -55,11 +55,11 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Expected Add() to error out with input (0,0)")
 	}
 
-	if tdigest.Quantile(0.9999999) != tdigest.summary.Max().mean {
+	if tdigest.Quantile(0.9999999) != tdigest.Summary.Max().Mean {
 		t.Errorf("High quantiles with little data should give out the MAX recorded mean")
 	}
 
-	if tdigest.Quantile(0.0000001) != tdigest.summary.Min().mean {
+	if tdigest.Quantile(0.0000001) != tdigest.Summary.Min().Mean {
 		t.Errorf("Low quantiles with little data should give out the MIN recorded mean")
 	}
 }
@@ -124,8 +124,8 @@ func TestIntegers(t *testing.T) {
 	}
 
 	var tot uint32
-	tdigest.summary.Iterate(func(item centroid) bool {
-		tot += item.count
+	tdigest.Summary.Iterate(func(item Centroid) bool {
+		tot += item.Count
 		return true
 	})
 
