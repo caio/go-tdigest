@@ -37,7 +37,7 @@ func TestSerialization(t *testing.T) {
 
 	t2, _ := FromBytes(bytes.NewReader(serialized))
 
-	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
+	if t1.count != t2.count || t1.Summary.Len() != t2.Summary.Len() || t1.compression != t2.compression {
 		t.Errorf("Deserialized to something different. t1=%v t2=%v serialized=%v", t1, t2, serialized)
 	}
 }

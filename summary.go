@@ -6,22 +6,22 @@ import (
 	"sort"
 )
 
-type centroid struct {
-	mean  float64
-	count uint32
+type Centroid struct {
+	Mean  float64
+	Count uint32
 	index int
 }
 
-func (c centroid) isValid() bool {
-	return !math.IsNaN(c.mean) && c.count > 0
+func (c Centroid) isValid() bool {
+	return !math.IsNaN(c.Mean) && c.Count > 0
 }
 
-func (c *centroid) Update(x float64, weight uint32) {
-	c.count += weight
-	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
+func (c *Centroid) Update(x float64, weight uint32) {
+	c.Count += weight
+	c.Mean += float64(weight) * (x - c.Mean) / float64(c.Count)
 }
 
-var invalidCentroid = centroid{mean: math.NaN(), count: 0}
+var invalidCentroid = Centroid{Mean: math.NaN(), Count: 0}
 
 type summary struct {
 	keys   []float64
@@ -68,11 +68,11 @@ func (s *summary) Add(key float64, value uint32) error {
 	return nil
 }
 
-func (s summary) Find(x float64) centroid {
+func (s summary) Find(x float64) Centroid {
 	idx := s.FindIndex(x)
 
 	if idx < s.Len() && s.keys[idx] == x {
-		return centroid{x, s.counts[idx], idx}
+		return Centroid{x, s.counts[idx], idx}
 	}
 
 	return invalidCentroid
@@ -95,45 +95,45 @@ func (s summary) FindIndex(x float64) int {
 	})
 }
 
-func (s summary) At(index int) centroid {
+func (s summary) At(index int) Centroid {
 	if s.Len()-1 < index || index < 0 {
 		return invalidCentroid
 	}
 
-	return centroid{s.keys[index], s.counts[index], index}
+	return Centroid{s.keys[index], s.counts[index], index}
 }
 
-func (s summary) Iterate(f func(c centroid) bool) {
+func (s summary) Iterate(f func(c Centroid) bool) {
 	for i := 0; i < s.Len(); i++ {
-		if !f(centroid{s.keys[i], s.counts[i], i}) {
+		if !f(Centroid{s.keys[i], s.counts[i], i}) {
 			break
 		}
 	}
 }
 
-func (s summary) Min() centroid {
+func (s summary) Min() Centroid {
 	return s.At(0)
 }
 
-func (s summary) Max() centroid {
+func (s summary) Max() Centroid {
 	return s.At(s.Len() - 1)
 }
 
-func (s summary) Data() []centroid {
-	data := make([]centroid, 0, s.Len())
-	s.Iterate(func(c centroid) bool {
+func (s summary) Data() []Centroid {
+	data := make([]Centroid, 0, s.Len())
+	s.Iterate(func(c Centroid) bool {
 		data = append(data, c)
 		return true
 	})
 	return data
 }
 
-func (s summary) successorAndPredecessorItems(mean float64) (centroid, centroid) {
+func (s summary) successorAndPredecessorItems(mean float64) (Centroid, Centroid) {
 	idx := s.FindIndex(mean)
 	return s.At(idx + 1), s.At(idx - 1)
 }
 
-func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
+func (s summary) ceilingAndFloorItems(mean float64) (Centroid, Centroid) {
 	idx := s.FindIndex(mean)
 
 	// Case 1: item is greater than all items in the summary
@@ -144,7 +144,7 @@ func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
 	item := s.At(idx)
 
 	// Case 2: item exists in the summary
-	if item.isValid() && mean == item.mean {
+	if item.isValid() && mean == item.Mean {
 		return item, item
 	}
 
@@ -169,16 +169,16 @@ func (s summary) sumUntilMean(mean float64) uint32 {
 }
 
 func (s *summary) updateAt(index int, mean float64, count uint32) {
-	c := centroid{s.keys[index], s.counts[index], index}
+	c := Centroid{s.keys[index], s.counts[index], index}
 	c.Update(mean, count)
 
 	oldMean := s.keys[index]
-	s.keys[index] = c.mean
-	s.counts[index] = c.count
+	s.keys[index] = c.Mean
+	s.counts[index] = c.Count
 
-	if c.mean > oldMean {
+	if c.Mean > oldMean {
 		s.adjustRight(index)
-	} else if c.mean < oldMean {
+	} else if c.Mean < oldMean {
 		s.adjustLeft(index)
 	}
 }
