@@ -181,15 +181,14 @@ func (t *TDigest) Len() int { return t.summary.Len() }
 
 // ForEachCentroid calls the specified function for each centroid.
 // Iteration stops when the supplied function returns false, or when all
-// centroids have been iterated.  The number of centroids handled is returned.
-func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) int {
+// centroids have been iterated.
+func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
 	s := t.summary
 	for i := 0; i < s.Len(); i++ {
 		if !f(s.keys[i], s.counts[i]) {
-			return i + 1
+			break
 		}
 	}
-	return s.Len()
 }
 
 func shuffle(data []centroid) {

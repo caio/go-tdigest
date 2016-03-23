@@ -244,31 +244,25 @@ func TestForEachCentroid(t *testing.T) {
 
 	// Iterate limited number.
 	means := []float64{}
-	handled := tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
 		means = append(means, mean)
 		if len(means) == 3 {
 			return false
 		}
 		return true
 	})
-	if handled != 3 {
+	if len(means) != 3 {
 		t.Errorf("ForEachCentroid handled incorrect number of data items")
-	}
-	if len(means) != handled {
-		t.Errorf("ForEachCentroid did not call processing function")
 	}
 
 	// Iterate all datapoints.
 	means = []float64{}
-	handled = tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
 		means = append(means, mean)
 		return true
 	})
-	if handled != tdigest.Len() {
+	if len(means) != tdigest.Len() {
 		t.Errorf("ForEachCentroid did not handle all data")
-	}
-	if len(means) != handled {
-		t.Errorf("ForEachCentroid did not call processing function")
 	}
 }
 
