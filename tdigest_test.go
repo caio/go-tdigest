@@ -234,6 +234,38 @@ func TestPanic(t *testing.T) {
 	}, t, "findNearestCentroids on empty summary should panic!")
 }
 
+func TestForEachCentroid(t *testing.T) {
+	t.Parallel()
+	tdigest := New(10)
+
+	for i := 0; i < 100; i++ {
+		tdigest.Add(float64(i), 1)
+	}
+
+	// Iterate limited number.
+	means := []float64{}
+	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+		means = append(means, mean)
+		if len(means) == 3 {
+			return false
+		}
+		return true
+	})
+	if len(means) != 3 {
+		t.Errorf("ForEachCentroid handled incorrect number of data items")
+	}
+
+	// Iterate all datapoints.
+	means = []float64{}
+	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+		means = append(means, mean)
+		return true
+	})
+	if len(means) != tdigest.Len() {
+		t.Errorf("ForEachCentroid did not handle all data")
+	}
+}
+
 func benchmarkAdd(compression float64, b *testing.B) {
 	t := New(compression)
 
