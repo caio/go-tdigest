@@ -71,6 +71,24 @@ func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *test
 	}
 }
 
+func TestCDFUniform(t *testing.T) {
+	t.Parallel()
+	rand.Seed(0xDEADBEEF)
+
+	td := New(100)
+
+	for i := 0; i < 20000; i++ {
+		td.Add(rand.Float64(), 1)
+	}
+	tol := float64(0.01)
+	for x := float64(0.0); x <= 1.0; x += 0.01 {
+		if math.Abs(td.CDF(x) - x) >= tol {
+			t.Errorf("T-Digest.CDF(%f) = %f, expected it to be within %f", x, td.CDF(x), tol)
+		}
+	}
+
+}
+
 func TestUniformDistribution(t *testing.T) {
 	t.Parallel()
 

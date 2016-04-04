@@ -88,6 +88,41 @@ func (t *TDigest) Quantile(q float64) float64 {
 	return t.summary.Max().mean
 }
 
+// Returns value of CDF evaluated at x
+func (t *TDigest) CDF(x float64) float64 {
+	N := float64(t.count)
+	tt := float64(0.0)
+	done := false
+	var result float64
+	i := 0
+	t.summary.Iterate(func(item centroid) bool {
+		succ, pred := t.summary.successorAndPredecessorItems(item.mean)
+		delta := float64(0.0)
+		k := float64(item.count)
+		if i < t.summary.Len() {
+			delta = (succ.mean - item.mean)/2
+		} else {
+			delta = (item.mean - pred.mean)/2
+		}
+		if delta == float64(0.0) { // This should never happen as all centroids are distinct
+			done = true
+			return false
+		}
+		z := math.Max(-1.0, (x - item.mean)/delta)
+		if z < 1.0 {
+			result = tt/N + ((k/N)*(z + 1.0)*0.5)
+			done = true
+			return false
+		}
+		tt += k
+		return true
+	})
+	if done {
+		return result
+	}
+	return float64(1.0)
+}
+
 // Add registers a new sample in the digest.
 // It's the main entry point for the digest and very likely the only
 // method to be used for collecting samples. The count parameter is for
