@@ -6,40 +6,40 @@ import (
 	"sort"
 )
 
-type centroid struct {
-	mean  float64
-	count uint32
-	index int
+type Centroid struct {
+	Mean  float64
+	Count uint32
+	Index int
 }
 
-func (c centroid) isValid() bool {
-	return !math.IsNaN(c.mean) && c.count > 0
+func (c Centroid) isValid() bool {
+	return !math.IsNaN(c.Mean) && c.Count > 0
 }
 
-func (c *centroid) Update(x float64, weight uint32) {
-	c.count += weight
-	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
+func (c *Centroid) Update(x float64, weight uint32) {
+	c.Count += weight
+	c.Mean += float64(weight) * (x - c.Mean) / float64(c.Count)
 }
 
-var invalidCentroid = centroid{mean: math.NaN(), count: 0}
+var invalidCentroid = Centroid{Mean: math.NaN(), Count: 0}
 
-type summary struct {
-	keys   []float64
-	counts []uint32
+type Summary struct {
+	Keys   []float64
+	Counts []uint32
 }
 
-func newSummary(initialCapacity uint) *summary {
-	return &summary{
-		keys:   make([]float64, 0, initialCapacity),
-		counts: make([]uint32, 0, initialCapacity),
+func newSummary(initialCapacity uint) *Summary {
+	return &Summary{
+		Keys:   make([]float64, 0, initialCapacity),
+		Counts: make([]uint32, 0, initialCapacity),
 	}
 }
 
-func (s summary) Len() int {
-	return len(s.keys)
+func (s Summary) Len() int {
+	return len(s.Keys)
 }
 
-func (s *summary) Add(key float64, value uint32) error {
+func (s *Summary) Add(key float64, value uint32) error {
 
 	if math.IsNaN(key) {
 		return fmt.Errorf("Key must not be NaN")
@@ -51,89 +51,89 @@ func (s *summary) Add(key float64, value uint32) error {
 
 	idx := s.FindIndex(key)
 
-	if s.meanAtIndexIs(idx, key) {
+	if s.MeanAtIndexIs(idx, key) {
 		s.updateAt(idx, key, value)
 		return nil
 	}
 
-	s.keys = append(s.keys, math.NaN())
-	s.counts = append(s.counts, 0)
+	s.Keys = append(s.Keys, math.NaN())
+	s.Counts = append(s.Counts, 0)
 
-	copy(s.keys[idx+1:], s.keys[idx:])
-	copy(s.counts[idx+1:], s.counts[idx:])
+	copy(s.Keys[idx+1:], s.Keys[idx:])
+	copy(s.Counts[idx+1:], s.Counts[idx:])
 
-	s.keys[idx] = key
-	s.counts[idx] = value
+	s.Keys[idx] = key
+	s.Counts[idx] = value
 
 	return nil
 }
 
-func (s summary) Find(x float64) centroid {
+func (s Summary) Find(x float64) Centroid {
 	idx := s.FindIndex(x)
 
-	if idx < s.Len() && s.keys[idx] == x {
-		return centroid{x, s.counts[idx], idx}
+	if idx < s.Len() && s.Keys[idx] == x {
+		return Centroid{x, s.Counts[idx], idx}
 	}
 
 	return invalidCentroid
 }
 
-func (s summary) FindIndex(x float64) int {
+func (s Summary) FindIndex(x float64) int {
 	// FIXME When is linear scan better than binsearch()?
 	//       should I even bother?
-	if len(s.keys) < 30 {
-		for i, item := range s.keys {
+	if len(s.Keys) < 30 {
+		for i, item := range s.Keys {
 			if item >= x {
 				return i
 			}
 		}
-		return len(s.keys)
+		return len(s.Keys)
 	}
 
-	return sort.Search(len(s.keys), func(i int) bool {
-		return s.keys[i] >= x
+	return sort.Search(len(s.Keys), func(i int) bool {
+		return s.Keys[i] >= x
 	})
 }
 
-func (s summary) At(index int) centroid {
+func (s Summary) At(index int) Centroid {
 	if s.Len()-1 < index || index < 0 {
 		return invalidCentroid
 	}
 
-	return centroid{s.keys[index], s.counts[index], index}
+	return Centroid{s.Keys[index], s.Counts[index], index}
 }
 
-func (s summary) Iterate(f func(c centroid) bool) {
+func (s Summary) Iterate(f func(c Centroid) bool) {
 	for i := 0; i < s.Len(); i++ {
-		if !f(centroid{s.keys[i], s.counts[i], i}) {
+		if !f(Centroid{s.Keys[i], s.Counts[i], i}) {
 			break
 		}
 	}
 }
 
-func (s summary) Min() centroid {
+func (s Summary) Min() Centroid {
 	return s.At(0)
 }
 
-func (s summary) Max() centroid {
+func (s Summary) Max() Centroid {
 	return s.At(s.Len() - 1)
 }
 
-func (s summary) Data() []centroid {
-	data := make([]centroid, 0, s.Len())
-	s.Iterate(func(c centroid) bool {
+func (s Summary) Data() []Centroid {
+	data := make([]Centroid, 0, s.Len())
+	s.Iterate(func(c Centroid) bool {
 		data = append(data, c)
 		return true
 	})
 	return data
 }
 
-func (s summary) successorAndPredecessorItems(mean float64) (centroid, centroid) {
+func (s Summary) successorAndPredecessorItems(mean float64) (Centroid, Centroid) {
 	idx := s.FindIndex(mean)
 	return s.At(idx + 1), s.At(idx - 1)
 }
 
-func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
+func (s Summary) CeilingAndFloorItems(mean float64) (Centroid, Centroid) {
 	idx := s.FindIndex(mean)
 
 	// Case 1: item is greater than all items in the summary
@@ -144,7 +144,7 @@ func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
 	item := s.At(idx)
 
 	// Case 2: item exists in the summary
-	if item.isValid() && mean == item.mean {
+	if item.isValid() && mean == item.Mean {
 		return item, item
 	}
 
@@ -156,11 +156,11 @@ func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
 	return item, s.At(idx - 1)
 }
 
-func (s summary) sumUntilMean(mean float64) uint32 {
+func (s Summary) sumUntilMean(mean float64) uint32 {
 	var cumSum uint32
-	for i := 0; i < len(s.keys); i++ {
-		if s.keys[i] < mean {
-			cumSum += s.counts[i]
+	for i := 0; i < len(s.Keys); i++ {
+		if s.Keys[i] < mean {
+			cumSum += s.Counts[i]
 		} else {
 			break
 		}
@@ -168,35 +168,35 @@ func (s summary) sumUntilMean(mean float64) uint32 {
 	return cumSum
 }
 
-func (s *summary) updateAt(index int, mean float64, count uint32) {
-	c := centroid{s.keys[index], s.counts[index], index}
+func (s *Summary) updateAt(index int, mean float64, count uint32) {
+	c := Centroid{s.Keys[index], s.Counts[index], index}
 	c.Update(mean, count)
 
-	oldMean := s.keys[index]
-	s.keys[index] = c.mean
-	s.counts[index] = c.count
+	oldMean := s.Keys[index]
+	s.Keys[index] = c.Mean
+	s.Counts[index] = c.Count
 
-	if c.mean > oldMean {
+	if c.Mean > oldMean {
 		s.adjustRight(index)
-	} else if c.mean < oldMean {
+	} else if c.Mean < oldMean {
 		s.adjustLeft(index)
 	}
 }
 
-func (s *summary) adjustRight(index int) {
-	for i := index + 1; i < len(s.keys) && s.keys[i-1] > s.keys[i]; i++ {
-		s.keys[i-1], s.keys[i] = s.keys[i], s.keys[i-1]
-		s.counts[i-1], s.counts[i] = s.counts[i], s.counts[i-1]
+func (s *Summary) adjustRight(index int) {
+	for i := index + 1; i < len(s.Keys) && s.Keys[i-1] > s.Keys[i]; i++ {
+		s.Keys[i-1], s.Keys[i] = s.Keys[i], s.Keys[i-1]
+		s.Counts[i-1], s.Counts[i] = s.Counts[i], s.Counts[i-1]
 	}
 }
 
-func (s *summary) adjustLeft(index int) {
-	for i := index - 1; i >= 0 && s.keys[i] > s.keys[i+1]; i-- {
-		s.keys[i], s.keys[i+1] = s.keys[i+1], s.keys[i]
-		s.counts[i], s.counts[i+1] = s.counts[i+1], s.counts[i]
+func (s *Summary) adjustLeft(index int) {
+	for i := index - 1; i >= 0 && s.Keys[i] > s.Keys[i+1]; i-- {
+		s.Keys[i], s.Keys[i+1] = s.Keys[i+1], s.Keys[i]
+		s.Counts[i], s.Counts[i+1] = s.Counts[i+1], s.Counts[i]
 	}
 }
 
-func (s summary) meanAtIndexIs(index int, mean float64) bool {
-	return index < len(s.keys) && s.keys[index] == mean
+func (s Summary) MeanAtIndexIs(index int, mean float64) bool {
+	return index < len(s.Keys) && s.Keys[index] == mean
 }
