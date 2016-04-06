@@ -37,7 +37,7 @@ func TestSerialization(t *testing.T) {
 
 	t2, _ := FromBytes(bytes.NewReader(serialized))
 
-	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
+	if t1.Count != t2.Count || t1.Summary.Len() != t2.Summary.Len() || t1.Compression != t2.Compression {
 		t.Errorf("Deserialized to something different. t1=%v t2=%v serialized=%v", t1, t2, serialized)
 	}
 }
@@ -73,8 +73,8 @@ func TestJavaSmallBytesCompat(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	if tdigest.count != 100000 {
-		t.Fatalf("Expected deserialized t-digest to have a count of 100_000. Got %d", tdigest.count)
+	if tdigest.Count != 100000 {
+		t.Fatalf("Expected deserialized t-digest to have a count of 100_000. Got %d", tdigest.Count)
 	}
 
 	assertDifferenceSmallerThan(tdigest, 0.5, 0.02, t)

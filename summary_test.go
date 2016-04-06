@@ -33,9 +33,9 @@ func TestBasics(t *testing.T) {
 	}
 }
 
-func checkSorted(s *summary, t *testing.T) {
-	if !sort.Float64sAreSorted(s.keys) {
-		t.Fatalf("Keys are not sorted! %v", s.keys)
+func checkSorted(s *Summary, t *testing.T) {
+	if !sort.Float64sAreSorted(s.Keys) {
+		t.Fatalf("Keys are not sorted! %v", s.Keys)
 	}
 }
 
@@ -75,8 +75,8 @@ func TestCore(t *testing.T) {
 
 	for k, v := range testData {
 		c := s.Find(k)
-		if !c.isValid() || c.count != v {
-			t.Errorf("Find(%.0f) returned %d, expected %d", k, c.count, v)
+		if !c.isValid() || c.Count != v {
+			t.Errorf("Find(%.0f) returned %d, expected %d", k, c.Count, v)
 		}
 	}
 }
@@ -100,8 +100,8 @@ func TestGetAt(t *testing.T) {
 
 	for i, v := range data {
 		c := s.At(i)
-		if !c.isValid() || c.count != v {
-			t.Errorf("At(%d) = %d. Should've been %d", i, c.count, v)
+		if !c.isValid() || c.Count != v {
+			t.Errorf("At(%d) = %d. Should've been %d", i, c.Count, v)
 		}
 	}
 
@@ -126,7 +126,7 @@ func TestIterate(t *testing.T) {
 	}
 
 	c := 0
-	s.Iterate(func(i centroid) bool {
+	s.Iterate(func(i Centroid) bool {
 		c++
 		return false
 	})
@@ -136,8 +136,8 @@ func TestIterate(t *testing.T) {
 	}
 
 	var tot uint32
-	s.Iterate(func(i centroid) bool {
-		tot += i.count
+	s.Iterate(func(i Centroid) bool {
+		tot += i.Count
 		return true
 	})
 
@@ -149,7 +149,7 @@ func TestIterate(t *testing.T) {
 func TestCeilingAndFloor(t *testing.T) {
 	s := newSummary(100)
 
-	ceil, floor := s.ceilingAndFloorItems(1)
+	ceil, floor := s.CeilingAndFloorItems(1)
 
 	if ceil.isValid() || floor.isValid() {
 		t.Errorf("Empty centroids must return invalid ceiling and floor items")
@@ -157,49 +157,49 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	s.Add(0.4, 1)
 
-	ceil, floor = s.ceilingAndFloorItems(0.3)
+	ceil, floor = s.CeilingAndFloorItems(0.3)
 
-	if floor.isValid() || ceil.mean != 0.4 {
+	if floor.isValid() || ceil.Mean != 0.4 {
 		t.Errorf("Expected to find a ceil and NOT find a floor. ceil=%v, floor=%v", ceil, floor)
 	}
 
-	ceil, floor = s.ceilingAndFloorItems(0.5)
+	ceil, floor = s.CeilingAndFloorItems(0.5)
 
-	if ceil.isValid() || floor.mean != 0.4 {
+	if ceil.isValid() || floor.Mean != 0.4 {
 		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%v, floor=%v", ceil, floor)
 	}
 
 	s.Add(0.1, 2)
 
-	ceil, floor = s.ceilingAndFloorItems(0.2)
+	ceil, floor = s.CeilingAndFloorItems(0.2)
 
-	if ceil.mean != 0.4 || floor.mean != 0.1 {
+	if ceil.Mean != 0.4 || floor.Mean != 0.1 {
 		t.Errorf("Expected to find a ceiling and a floor. ceil=%v, floor=%v", ceil, floor)
 	}
 
 	s.Add(0.21, 3)
 
-	ceil, floor = s.ceilingAndFloorItems(0.2)
+	ceil, floor = s.CeilingAndFloorItems(0.2)
 
-	if ceil.mean != 0.21 || floor.mean != 0.1 {
+	if ceil.Mean != 0.21 || floor.Mean != 0.1 {
 		t.Errorf("Ceil should've shrunk. ceil=%v, floor=%v", ceil, floor)
 	}
 
 	s.Add(0.1999, 1)
 
-	ceil, floor = s.ceilingAndFloorItems(0.2)
+	ceil, floor = s.CeilingAndFloorItems(0.2)
 
-	if ceil.mean != 0.21 || floor.mean != 0.1999 {
+	if ceil.Mean != 0.21 || floor.Mean != 0.1999 {
 		t.Errorf("Floor should've shrunk. ceil=%v, floor=%v", ceil, floor)
 	}
 
-	ceil, floor = s.ceilingAndFloorItems(10)
+	ceil, floor = s.CeilingAndFloorItems(10)
 
 	if ceil.isValid() {
 		t.Errorf("Expected an invalid ceil. Got %v", ceil)
 	}
 
-	ceil, floor = s.ceilingAndFloorItems(0.0001)
+	ceil, floor = s.CeilingAndFloorItems(0.0001)
 
 	if floor.isValid() {
 		t.Errorf("Expected an invalid floor. Got %v", floor)
@@ -207,9 +207,9 @@ func TestCeilingAndFloor(t *testing.T) {
 
 	m := float64(0.42)
 	s.Add(m, 1)
-	ceil, floor = s.ceilingAndFloorItems(m)
+	ceil, floor = s.CeilingAndFloorItems(m)
 
-	if ceil.mean != m || floor.mean != m {
+	if ceil.Mean != m || floor.Mean != m {
 		t.Errorf("ceiling and floor of an existing item should be the item itself")
 	}
 }
@@ -219,21 +219,21 @@ func TestAdjustLeftRight(t *testing.T) {
 	keys := []float64{1, 2, 3, 4, 9, 5, 6, 7, 8}
 	counts := []uint32{1, 2, 3, 4, 9, 5, 6, 7, 8}
 
-	s := summary{keys: keys, counts: counts}
+	s := Summary{Keys: keys, Counts: counts}
 
 	s.adjustRight(4)
 
-	if !sort.Float64sAreSorted(s.keys) || s.counts[4] != 5 {
-		t.Errorf("adjustRight should have fixed the keys/counts state. %v %v", s.keys, s.counts)
+	if !sort.Float64sAreSorted(s.Keys) || s.Counts[4] != 5 {
+		t.Errorf("adjustRight should have fixed the keys/counts state. %v %v", s.Keys, s.Counts)
 	}
 
 	keys = []float64{1, 2, 3, 4, 0, 5, 6, 7, 8}
 	counts = []uint32{1, 2, 3, 4, 0, 5, 6, 7, 8}
 
-	s = summary{keys: keys, counts: counts}
+	s = Summary{Keys: keys, Counts: counts}
 	s.adjustLeft(4)
 
-	if !sort.Float64sAreSorted(s.keys) || s.counts[4] != 4 {
-		t.Errorf("adjustLeft should have fixed the keys/counts state. %v %v", s.keys, s.counts)
+	if !sort.Float64sAreSorted(s.Keys) || s.Counts[4] != 4 {
+		t.Errorf("adjustLeft should have fixed the keys/counts state. %v %v", s.Keys, s.Counts)
 	}
 }
