@@ -158,7 +158,7 @@ func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
 
 func (s summary) sumUntilMean(mean float64) uint32 {
 	var cumSum uint32
-	for i := 0; i < len(s.keys); i++ {
+	for i := range s.keys {
 		if s.keys[i] < mean {
 			cumSum += s.counts[i]
 		} else {

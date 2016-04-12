@@ -99,35 +99,41 @@ func (t *TDigest) Add(value float64, count uint32) error {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
 	}
 
-	t.count += count
-
 	if t.summary.Len() == 0 {
 		t.summary.Add(value, count)
+		t.count = count
 		return nil
 	}
 
-	candidates := t.findNearestCentroids(value)
-
+	// Avoid allocation for our slice by using a local array here.
+	ar := [2]centroid{}
+	candidates := ar[:]
+	candidates[0], candidates[1] = t.findNearestCentroids(value)
+	if !candidates[1].isValid() {
+		candidates = candidates[:1]
+	}
 	for len(candidates) > 0 && count > 0 {
-		j := rand.Intn(len(candidates))
+		j := 0
+		if len(candidates) > 1 {
+			j = rand.Intn(len(candidates))
+		}
 		chosen := candidates[j]
 
-		quantile := t.computeCentroidQuantile(chosen)
+		quantile := t.computeCentroidQuantile(&chosen)
 
 		if float64(chosen.count+count) > t.threshold(quantile) {
 			candidates = append(candidates[:j], candidates[j+1:]...)
 			continue
 		}
 
-		deltaW := math.Min(t.threshold(quantile)-float64(chosen.count), float64(count))
-		t.summary.updateAt(chosen.index, value, uint32(deltaW))
-		count -= uint32(deltaW)
-
-		candidates = append(candidates[:j], candidates[j+1:]...)
+		t.summary.updateAt(chosen.index, value, uint32(count))
+		t.count += count
+		count = 0
 	}
 
 	if count > 0 {
 		t.summary.Add(value, count)
+		t.count += count
 	}
 
 	if float64(t.summary.Len()) > 20*t.compression {
@@ -213,7 +219,7 @@ func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
 	return (float64(c.count)/2.0 + float64(cumSum)) / float64(t.count)
 }
 
-func (t *TDigest) findNearestCentroids(mean float64) []*centroid {
+func (t *TDigest) findNearestCentroids(mean float64) (centroid, centroid) {
 	ceil, floor := t.summary.ceilingAndFloorItems(mean)
 
 	if !ceil.isValid() && !floor.isValid() {
@@ -221,18 +227,18 @@ func (t *TDigest) findNearestCentroids(mean float64) []*centroid {
 	}
 
 	if !ceil.isValid() {
-		return []*centroid{&floor}
+		return floor, invalidCentroid
 	}
 
 	if !floor.isValid() {
-		return []*centroid{&ceil}
+		return ceil, invalidCentroid
 	}
 
 	if math.Abs(floor.mean-mean) < math.Abs(ceil.mean-mean) {
-		return []*centroid{&floor}
+		return floor, invalidCentroid
 	} else if math.Abs(floor.mean-mean) == math.Abs(ceil.mean-mean) && floor.mean != ceil.mean {
-		return []*centroid{&floor, &ceil}
+		return floor, ceil
 	} else {
-		return []*centroid{&ceil}
+		return ceil, invalidCentroid
 	}
 }
