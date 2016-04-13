@@ -321,6 +321,22 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func TestCompressDoesntChangeCount(t *testing.T) {
+	tdigest := New(100)
+
+	for i := 0; i < 1000; i++ {
+		tdigest.Add(rand.Float64(), 1)
+	}
+
+	initialCount := tdigest.count
+
+	tdigest.Compress()
+
+	if tdigest.count != initialCount {
+		t.Errorf("Compress() should not change count. Wanted %d, got %d", initialCount, tdigest.count)
+	}
+}
+
 func shouldPanic(f func(), t *testing.T, message string) {
 	defer func() {
 		tryRecover := recover()
