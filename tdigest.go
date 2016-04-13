@@ -155,6 +155,7 @@ func (t *TDigest) Compress() {
 
 	oldTree := t.summary
 	t.summary = newSummary(estimateCapacity(t.compression))
+	t.count = 0
 
 	nodes := oldTree.Data()
 	shuffle(nodes)
