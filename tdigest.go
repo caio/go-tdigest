@@ -200,10 +200,8 @@ func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
 
 func shuffle(data []centroid) {
 	for i := len(data) - 1; i > 1; i-- {
-		other := rand.Intn(i + 1)
-		tmp := data[other]
-		data[other] = data[i]
-		data[i] = tmp
+		j := rand.Intn(i + 1)
+		data[i], data[j] = data[j], data[i]
 	}
 }
 
