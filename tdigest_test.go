@@ -106,6 +106,8 @@ func assertDifferenceFromQuantile(data []float64, tdigest *TDigest, p float64, m
 func TestSequentialInsertion(t *testing.T) {
 	tdigest := New(10)
 
+	rand.Seed(0xDEADBEEF)
+
 	data := make([]float64, 10000)
 	for i := 0; i < len(data); i++ {
 		data[i] = float64(i)
