@@ -370,7 +370,6 @@ func TestPanic(t *testing.T) {
 }
 
 func TestForEachCentroid(t *testing.T) {
-	t.Parallel()
 	tdigest := New(10)
 
 	for i := 0; i < 100; i++ {
