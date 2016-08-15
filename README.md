@@ -8,7 +8,6 @@ data structure in Go.
 
 [![Build Status](https://travis-ci.org/caio/go-tdigest.svg?branch=master)](https://travis-ci.org/caio/go-tdigest)
 [![GoDoc](https://godoc.org/github.com/caio/go-tdigest?status.svg)](http://godoc.org/github.com/caio/go-tdigest)
-[![Coverage](http://gocover.io/_badge/github.com/caio/go-tdigest)](http://gocover.io/github.com/caio/go-tdigest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/caio/go-tdigest)](https://goreportcard.com/report/github.com/caio/go-tdigest)
 
 ## Installation
