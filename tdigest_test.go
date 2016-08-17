@@ -380,10 +380,7 @@ func TestForEachCentroid(t *testing.T) {
 	means := []float64{}
 	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
 		means = append(means, mean)
-		if len(means) == 3 {
-			return false
-		}
-		return true
+		return len(means) != 3
 	})
 	if len(means) != 3 {
 		t.Errorf("ForEachCentroid handled incorrect number of data items")
