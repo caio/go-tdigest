@@ -99,9 +99,9 @@ func TestGetAt(t *testing.T) {
 	}
 
 	for i, v := range data {
-		c := s.At(i)
-		if !c.isValid() || c.count != v {
-			t.Errorf("At(%d) = %d. Should've been %d", i, c.count, v)
+		c1 := s.At(i)
+		if !c1.isValid() || c1.count != v {
+			t.Errorf("At(%d) = %d. Should've been %d", i, c1.count, v)
 		}
 	}
 
