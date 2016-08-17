@@ -12,7 +12,7 @@ func TestEncodeDecode(t *testing.T) {
 	buf := new(bytes.Buffer)
 
 	for _, i := range testUints {
-		encodeUint(buf, i)
+		_ = encodeUint(buf, i)
 	}
 
 	readBuf := bytes.NewReader(buf.Bytes())
@@ -30,7 +30,7 @@ func TestSerialization(t *testing.T) {
 	//      so we don't end up compressing automatically
 	t1 := New(100)
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		_ = t1.Add(rand.Float64(), 1)
 	}
 
 	serialized, _ := t1.AsBytes()

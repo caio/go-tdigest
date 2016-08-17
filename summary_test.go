@@ -95,7 +95,7 @@ func TestGetAt(t *testing.T) {
 
 	for i := 0; i < maxDataSize; i++ {
 		data[i] = rand.Uint32()
-		s.Add(float64(i), data[i])
+		_ = s.Add(float64(i), data[i])
 	}
 
 	for i, v := range data {
@@ -122,7 +122,7 @@ func TestIterate(t *testing.T) {
 
 	s := newSummary(10)
 	for _, i := range []uint32{1, 2, 3, 4, 5, 6} {
-		s.Add(float64(i), i*10)
+		_ = s.Add(float64(i), i*10)
 	}
 
 	c := 0
@@ -155,7 +155,7 @@ func TestCeilingAndFloor(t *testing.T) {
 		t.Errorf("Empty centroids must return invalid ceiling and floor items")
 	}
 
-	s.Add(0.4, 1)
+	_ = s.Add(0.4, 1)
 
 	ceil, floor = s.ceilingAndFloorItems(0.3)
 
@@ -169,7 +169,7 @@ func TestCeilingAndFloor(t *testing.T) {
 		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%v, floor=%v", ceil, floor)
 	}
 
-	s.Add(0.1, 2)
+	_ = s.Add(0.1, 2)
 
 	ceil, floor = s.ceilingAndFloorItems(0.2)
 
@@ -177,7 +177,7 @@ func TestCeilingAndFloor(t *testing.T) {
 		t.Errorf("Expected to find a ceiling and a floor. ceil=%v, floor=%v", ceil, floor)
 	}
 
-	s.Add(0.21, 3)
+	_ = s.Add(0.21, 3)
 
 	ceil, floor = s.ceilingAndFloorItems(0.2)
 
@@ -185,7 +185,7 @@ func TestCeilingAndFloor(t *testing.T) {
 		t.Errorf("Ceil should've shrunk. ceil=%v, floor=%v", ceil, floor)
 	}
 
-	s.Add(0.1999, 1)
+	_ = s.Add(0.1999, 1)
 
 	ceil, floor = s.ceilingAndFloorItems(0.2)
 
@@ -206,7 +206,7 @@ func TestCeilingAndFloor(t *testing.T) {
 	}
 
 	m := float64(0.42)
-	s.Add(m, 1)
+	_ = s.Add(m, 1)
 	ceil, floor = s.ceilingAndFloorItems(m)
 
 	if ceil.mean != m || floor.mean != m {

@@ -20,13 +20,13 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Quantile() on an empty digest should return NaN. Got: %.4f", tdigest.Quantile(0.1))
 	}
 
-	tdigest.Add(0.4, 1)
+	_ = tdigest.Add(0.4, 1)
 
 	if tdigest.Quantile(0.1) != 0.4 {
 		t.Errorf("Quantile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Quantile(0.1))
 	}
 
-	tdigest.Add(0.5, 1)
+	_ = tdigest.Add(0.5, 1)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
@@ -40,8 +40,8 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
 	}
 
-	tdigest.Add(0.4, 2)
-	tdigest.Add(0.4, 3)
+	_ = tdigest.Add(0.4, 2)
+	_ = tdigest.Add(0.4, 3)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Adding centroids of same mean shouldn't change size")
@@ -79,7 +79,7 @@ func TestUniformDistribution(t *testing.T) {
 	tdigest := New(100)
 
 	for i := 0; i < 10000; i++ {
-		tdigest.Add(rand.Float64(), 1)
+		_ = tdigest.Add(rand.Float64(), 1)
 	}
 
 	assertDifferenceSmallerThan(tdigest, 0.5, 0.02, t)
@@ -114,7 +114,7 @@ func TestSequentialInsertion(t *testing.T) {
 	}
 
 	for i := 0; i < len(data); i++ {
-		tdigest.Add(data[i], 1)
+		_ = tdigest.Add(data[i], 1)
 
 		assertDifferenceFromQuantile(data[:i+1], tdigest, 0.001, 1.0+0.001*float64(i), t)
 		assertDifferenceFromQuantile(data[:i+1], tdigest, 0.01, 1.0+0.005*float64(i), t)
@@ -144,7 +144,7 @@ func TestNonUniformDistribution(t *testing.T) {
 	}
 
 	for i := 0; i < len(data); i++ {
-		tdigest.Add(data[i], 1)
+		_ = tdigest.Add(data[i], 1)
 	}
 
 	max := float64(len(data))
@@ -173,7 +173,7 @@ func TestNonSequentialInsertion(t *testing.T) {
 	sorted := make([]float64, 0, len(data))
 
 	for i := 0; i < len(data); i++ {
-		tdigest.Add(data[i], 1)
+		_ = tdigest.Add(data[i], 1)
 		sorted = append(sorted, data[i])
 
 		// Estimated quantiles are all over the place for low counts, which is
@@ -206,7 +206,7 @@ func TestWeights(t *testing.T) {
 	// Create data slice with repeats matching weights we gave to tdigest
 	data := []float64{}
 	for i := 0; i < 100; i++ {
-		tdigest.Add(float64(i), uint32(i))
+		_ = tdigest.Add(float64(i), uint32(i))
 
 		for j := 0; j < i; j++ {
 			data = append(data, float64(i))
@@ -227,9 +227,9 @@ func TestWeights(t *testing.T) {
 func TestIntegers(t *testing.T) {
 	tdigest := New(100)
 
-	tdigest.Add(1, 1)
-	tdigest.Add(2, 1)
-	tdigest.Add(3, 1)
+	_ = tdigest.Add(1, 1)
+	_ = tdigest.Add(2, 1)
+	_ = tdigest.Add(3, 1)
 
 	if tdigest.Quantile(0.5) != 2 {
 		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Quantile(0.5))
@@ -238,7 +238,7 @@ func TestIntegers(t *testing.T) {
 	tdigest = New(100)
 
 	for _, i := range []float64{1, 2, 2, 2, 2, 2, 2, 2, 3} {
-		tdigest.Add(i, 1)
+		_ = tdigest.Add(i, 1)
 	}
 
 	if tdigest.Quantile(0.5) != 2 {
@@ -290,19 +290,22 @@ func TestMerge(t *testing.T) {
 		num := rand.Float64()
 
 		data[i] = num
-		dist1.Add(num, 1)
+		_ = dist1.Add(num, 1)
 		for j := 0; j < numSubs; j++ {
-			subs[j].Add(num, 1)
+			_ = subs[j].Add(num, 1)
 		}
 	}
 
 	dist2 := New(10)
 	for i := 0; i < numSubs; i++ {
-		dist2.Merge(subs[i])
+		_ = dist2.Merge(subs[i])
 	}
 
 	// Merge empty. Should be no-op
-	dist2.Merge(New(10))
+	err := dist2.Merge(New(10))
+	if err != nil {
+		t.Errorf("Merge() with an empty digest should be a noop. Got %s", err)
+	}
 
 	sort.Float64s(data)
 
@@ -327,12 +330,15 @@ func TestCompressDoesntChangeCount(t *testing.T) {
 	tdigest := New(100)
 
 	for i := 0; i < 1000; i++ {
-		tdigest.Add(rand.Float64(), 1)
+		_ = tdigest.Add(rand.Float64(), 1)
 	}
 
 	initialCount := tdigest.count
 
-	tdigest.Compress()
+	err := tdigest.Compress()
+	if err != nil {
+		t.Errorf("Compress() triggered an unexpected error: %s", err)
+	}
 
 	if tdigest.count != initialCount {
 		t.Errorf("Compress() should not change count. Wanted %d, got %d", initialCount, tdigest.count)
@@ -373,7 +379,7 @@ func TestForEachCentroid(t *testing.T) {
 	tdigest := New(10)
 
 	for i := 0; i < 100; i++ {
-		tdigest.Add(float64(i), 1)
+		_ = tdigest.Add(float64(i), 1)
 	}
 
 	// Iterate limited number.
