@@ -93,16 +93,16 @@ func (t *TDigest) Quantile(q float64) float64 {
 // method to be used for collecting samples. The count parameter is for
 // when you are registering a sample that occurred multiple times - the
 // most common value for this is 1.
-func (t *TDigest) Add(value float64, count uint32) error {
+func (t *TDigest) Add(value float64, count uint32) (err error) {
 
 	if count == 0 {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
 	}
 
 	if t.summary.Len() == 0 {
-		t.summary.Add(value, count)
+		err = t.summary.Add(value, count)
 		t.count = count
-		return nil
+		return err
 	}
 
 	// Avoid allocation for our slice by using a local array here.
@@ -126,21 +126,21 @@ func (t *TDigest) Add(value float64, count uint32) error {
 			continue
 		}
 
-		t.summary.updateAt(chosen.index, value, uint32(count))
+		t.summary.updateAt(chosen.index, value, count)
 		t.count += count
 		count = 0
 	}
 
 	if count > 0 {
-		t.summary.Add(value, count)
+		err = t.summary.Add(value, count)
 		t.count += count
 	}
 
 	if float64(t.summary.Len()) > 20*t.compression {
-		t.Compress()
+		err = t.Compress()
 	}
 
-	return nil
+	return err
 }
 
 // Compress tries to reduce the number of individual centroids stored
@@ -148,9 +148,9 @@ func (t *TDigest) Add(value float64, count uint32) error {
 // Compression trades off accuracy for performance and happens
 // automatically after a certain amount of distinct samples have been
 // stored.
-func (t *TDigest) Compress() {
+func (t *TDigest) Compress() error {
 	if t.summary.Len() <= 1 {
-		return
+		return nil
 	}
 
 	oldTree := t.summary
@@ -161,8 +161,13 @@ func (t *TDigest) Compress() {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Add(item.mean, item.count)
+		err := t.Add(item.mean, item.count)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Merge joins a given digest into itself.
@@ -170,17 +175,22 @@ func (t *TDigest) Compress() {
 // in separate threads and you want to compute quantiles over all the
 // samples. This is particularly important on a scatter-gather/map-reduce
 // scenario.
-func (t *TDigest) Merge(other *TDigest) {
+func (t *TDigest) Merge(other *TDigest) error {
 	if other.summary.Len() == 0 {
-		return
+		return nil
 	}
 
 	nodes := other.summary.Data()
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		t.Add(item.mean, item.count)
+		err := t.Add(item.mean, item.count)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Len returns the number of centroids in the TDigest.

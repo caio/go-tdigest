@@ -106,7 +106,10 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 			return nil, err
 		}
 
-		t.Add(means[i], decUint)
+		err = t.Add(means[i], decUint)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return t, nil
@@ -117,9 +120,9 @@ func encodeUint(buf *bytes.Buffer, n uint32) error {
 
 	l := binary.PutUvarint(b[:], uint64(n))
 
-	buf.Write(b[:l])
+	_, err := buf.Write(b[:l])
 
-	return nil
+	return err
 }
 
 func decodeUint(buf *bytes.Reader) (uint32, error) {
