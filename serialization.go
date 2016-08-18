@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 )
 
 const smallEncoding int32 = 2
@@ -116,7 +115,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	return t, nil
 }
 
-func encodeUint(buf io.Writer, n uint32) error {
+func encodeUint(buf *bytes.Buffer, n uint32) error {
 	var b [binary.MaxVarintLen32]byte
 
 	l := binary.PutUvarint(b[:], uint64(n))
@@ -126,7 +125,7 @@ func encodeUint(buf io.Writer, n uint32) error {
 	return err
 }
 
-func decodeUint(buf io.ByteReader) (uint32, error) {
+func decodeUint(buf *bytes.Reader) (uint32, error) {
 	v, err := binary.ReadUvarint(buf)
 	if v > 0xffffffff {
 		return 0, errors.New("Something wrong, this number looks too big")
