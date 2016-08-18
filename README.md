@@ -12,6 +12,12 @@ data structure in Go.
 
 ## Installation
 
+The current stable version can be installed via:
+
+    go get gopkg.in/caio/go-tdigest.v1
+
+Or if you're planning on contributing or just feeling adventurous:
+
     go get github.com/caio/go-tdigest
 
 ## Usage
@@ -23,7 +29,9 @@ import (
         "fmt"
         "math/rand"
 
-        "github.com/caio/go-tdigest"
+        "gopkg.in/caio/go-tdigest.v1"
+        // Or if you installed the development version:
+        // "github.com/caio/go-tdigest"
 )
 
 func main() {
