@@ -16,24 +16,26 @@ data structure in Go.
 
 ## Usage
 
-    package main
+```go
+package main
 
-    import (
-            "fmt"
-            "math/rand"
+import (
+        "fmt"
+        "math/rand"
 
-            "github.com/caio/go-tdigest"
-    )
+        "github.com/caio/go-tdigest"
+)
 
-    func main() {
-            var t = tdigest.New(100)
+func main() {
+        var t = tdigest.New(100)
 
-            for i := 0; i < 10000; i++ {
-                    t.Add(rand.Float64(), 1)
-            }
+        for i := 0; i < 10000; i++ {
+                t.Add(rand.Float64(), 1)
+        }
 
-            fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
-    }
+        fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
+}
+```
 
 ## Disclaimer
 
