@@ -83,7 +83,9 @@ func (t *TDigest) Quantile(q float64) float64 {
 	})
 
 	if found {
-		return result
+		min := t.summary.keys[0]
+		max := t.summary.keys[len(t.summary.keys)-1]
+		return math.Min(max, math.Max(result, min))
 	}
 	return t.summary.Max().mean
 }

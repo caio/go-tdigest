@@ -200,6 +200,25 @@ func TestNonSequentialInsertion(t *testing.T) {
 	}
 }
 
+func TestRespectBounds(t *testing.T) {
+	tdigest := New(10)
+
+	data := []float64{0, 279, 2, 281}
+	for _, f := range data {
+		tdigest.Add(f, 1)
+	}
+
+	quantiles := []float64{0.01, 0.25, 0.5, 0.75, 0.999}
+	for _, q := range quantiles {
+		if tdigest.Quantile(q) < 0 {
+			t.Errorf("should never return a result less than the min")
+		}
+		if tdigest.Quantile(q) > 281 {
+			t.Errorf("should never return a result larger than the max")
+		}
+	}
+}
+
 func TestWeights(t *testing.T) {
 	tdigest := New(10)
 
