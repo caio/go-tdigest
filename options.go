@@ -1,6 +1,8 @@
 package tdigest
 
-type tdigestOption func(*TDigest)
+import "errors"
+
+type tdigestOption func(*TDigest) error
 
 // Compression sets the digest compression
 //
@@ -13,13 +15,14 @@ type tdigestOption func(*TDigest)
 // (thus: better precision), which means a bigger serialization payload,
 // higher memory footprint and slower addition of new samples.
 //
-// Compression must be a value greater of equal to 1, will panic
-// otherwise.
+// Compression must be a value greater of equal to 1, will yield an
+// error otherwise.
 func Compression(compression uint32) tdigestOption {
-	if compression < 1 {
-		panic("Compression should be >= 1")
-	}
-	return func(t *TDigest) {
+	return func(t *TDigest) error {
+		if compression < 1 {
+			return errors.New("Compression should be >= 1")
+		}
 		t.compression = float64(compression)
+		return nil
 	}
 }

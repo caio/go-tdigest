@@ -24,18 +24,21 @@ type TDigest struct {
 //
 // By default the digest is constructed with a configuration that
 // should be useful for most use-cases.
-func New(options ...tdigestOption) *TDigest {
+func New(options ...tdigestOption) (*TDigest, error) {
 	tdigest := &TDigest{
 		compression: 100,
 		count:       0,
 	}
 
 	for _, option := range options {
-		option(tdigest)
+		err := option(tdigest)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tdigest.summary = newSummary(estimateCapacity(tdigest.compression))
-	return tdigest
+	return tdigest, nil
 }
 
 func _quantile(index float64, previousIndex float64, nextIndex float64, previousMean float64, nextMean float64) float64 {

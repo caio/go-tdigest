@@ -26,7 +26,7 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func TestSerialization(t *testing.T) {
-	t1 := New()
+	t1, _ := New()
 	for i := 0; i < 100; i++ {
 		_ = t1.Add(rand.Float64(), 1)
 	}
