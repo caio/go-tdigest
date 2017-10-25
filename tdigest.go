@@ -123,10 +123,7 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 		return err
 	}
 
-	x := value
-	w := count
-
-	start := t.summary.Floor(x)
+	start := t.summary.Floor(value)
 	if start == -1 {
 		start = 0
 	}
@@ -134,7 +131,7 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 	minDistance := math.MaxFloat64
 	lastNeighbor := t.Len()
 	for neighbor := start; neighbor < t.Len(); neighbor++ {
-		z := math.Abs(t.summary.Mean(neighbor) - x)
+		z := math.Abs(t.summary.Mean(neighbor) - value)
 		if z < minDistance {
 			start = neighbor
 			minDistance = z
@@ -158,7 +155,7 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 		}
 		k := 4 * float64(t.count) * q * (1 - q) / t.compression
 
-		if c+float64(w) <= k {
+		if c+float64(count) <= k {
 			n++
 			if rand.Float32() < 1/n {
 				closest = neighbor
@@ -168,13 +165,13 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 	}
 
 	if closest == t.Len() {
-		t.summary.Add(x, w)
+		t.summary.Add(value, count)
 	} else {
 		c := float64(t.summary.Count(closest))
-		newMean := weightedAverage(t.summary.Mean(closest), c, x, float64(w))
-		t.summary.setAt(closest, newMean, uint32(c)+w)
+		newMean := weightedAverage(t.summary.Mean(closest), c, value, float64(count))
+		t.summary.setAt(closest, newMean, uint32(c)+count)
 	}
-	t.count += w
+	t.count += count
 
 	if float64(t.Len()) > 20*t.compression {
 		err = t.Compress()
