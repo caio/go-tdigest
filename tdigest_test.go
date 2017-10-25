@@ -204,11 +204,12 @@ func TestRespectBounds(t *testing.T) {
 
 	quantiles := []float64{0.01, 0.25, 0.5, 0.75, 0.999}
 	for _, q := range quantiles {
-		if tdigest.Quantile(q) < 0 {
-			t.Errorf("should never return a result less than the min")
+		result := tdigest.Quantile(q)
+		if result < 0 {
+			t.Errorf("q(%.3f) = %.4f < 0", q, result)
 		}
 		if tdigest.Quantile(q) > 281 {
-			t.Errorf("should never return a result larger than the max")
+			t.Errorf("q(%.3f) = %.4f > 281", q, result)
 		}
 	}
 }
