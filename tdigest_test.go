@@ -128,38 +128,6 @@ func TestSequentialInsertion(t *testing.T) {
 	}
 }
 
-func TestNonUniformDistribution(t *testing.T) {
-	tdigest := New(10)
-
-	// Not quite a uniform distribution, but close.
-	data := make([]float64, 1000)
-	for i := 0; i < 500; i++ {
-		data[i] = 700.0 + rand.Float64()*100.0
-	}
-	for i := 500; i < 750; i++ {
-		data[i] = 100.0 + rand.Float64()*100.0
-	}
-	for i := 750; i < 1000; i++ {
-		data[i] = 600.0 + rand.Float64()*10.0
-	}
-
-	for i := 0; i < len(data); i++ {
-		_ = tdigest.Add(data[i], 1)
-	}
-
-	max := float64(len(data))
-	sort.Float64s(data)
-	assertDifferenceFromQuantile(data, tdigest, 0.001, 1.0+0.001*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.01, 1.0+0.005*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.05, 1.0+0.01*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.25, 1.0+0.01*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.5, 1.0+0.05*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.75, 1.0+0.01*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.95, 1.0+0.01*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.99, 1.0+0.005*max, t)
-	assertDifferenceFromQuantile(data, tdigest, 0.999, 1.0+0.001*max, t)
-}
-
 func TestNonSequentialInsertion(t *testing.T) {
 	tdigest := New(10)
 
