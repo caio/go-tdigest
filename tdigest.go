@@ -21,24 +21,21 @@ type TDigest struct {
 }
 
 // New creates a new digest.
-// The compression parameter rules the threshold in which samples are
-// merged together - the more often distinct samples are merged the more
-// precision is lost. Compression should be tuned according to your data
-// distribution, but a value of 100 is often good enough. A higher
-// compression value means holding more centroids in memory (thus: better
-// precision), which means a bigger serialization payload and higher
-// memory footprint.
-// Compression must be a value greater of equal to 1, will panic
-// otherwise.
-func New(compression float64) *TDigest {
-	if compression < 1 {
-		panic("Compression must be >= 1.0")
-	}
-	return &TDigest{
-		compression: compression,
-		summary:     newSummary(estimateCapacity(compression)),
+//
+// By default the digest is constructed with a configuration that
+// should be useful for most use-cases.
+func New(options ...tdigestOption) *TDigest {
+	tdigest := &TDigest{
+		compression: 100,
 		count:       0,
 	}
+
+	for _, option := range options {
+		option(tdigest)
+	}
+
+	tdigest.summary = newSummary(estimateCapacity(tdigest.compression))
+	return tdigest
 }
 
 func _quantile(index float64, previousIndex float64, nextIndex float64, previousMean float64, nextMean float64) float64 {

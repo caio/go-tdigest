@@ -26,9 +26,7 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func TestSerialization(t *testing.T) {
-	// NOTE Using a high compression value and adding few items
-	//      so we don't end up compressing automatically
-	t1 := New(100)
+	t1 := New()
 	for i := 0; i < 100; i++ {
 		_ = t1.Add(rand.Float64(), 1)
 	}

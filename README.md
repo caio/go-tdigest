@@ -41,7 +41,7 @@ import (
 )
 
 func main() {
-        var t = tdigest.New(100)
+        var t = tdigest.New()
 
         for i := 0; i < 10000; i++ {
                 t.Add(rand.Float64(), 1)

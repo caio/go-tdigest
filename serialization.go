@@ -76,7 +76,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		return nil, err
 	}
 
-	t := New(compression)
+	t := New(Compression(uint32(compression)))
 
 	var numCentroids int32
 	err = binary.Read(buf, endianess, &numCentroids)
