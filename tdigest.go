@@ -5,7 +5,6 @@ package tdigest
 import (
 	"fmt"
 	"math"
-	"math/rand"
 )
 
 // TDigest is a quantile approximation data structure.
@@ -18,6 +17,7 @@ type TDigest struct {
 	summary     *summary
 	compression float64
 	count       uint32
+	rng         TDigestRNG
 }
 
 // New creates a new digest.
@@ -28,6 +28,7 @@ func New(options ...tdigestOption) (*TDigest, error) {
 	tdigest := &TDigest{
 		compression: 100,
 		count:       0,
+		rng:         &globalRNG{},
 	}
 
 	for _, option := range options {
@@ -160,7 +161,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 
 		if c+float64(count) <= k {
 			n++
-			if rand.Float32() < 1/n {
+			if t.rng.Float32() < 1/n {
 				closest = neighbor
 			}
 		}
@@ -204,7 +205,7 @@ func (t *TDigest) Compress() error {
 	t.count = 0
 
 	nodes := oldTree.Data()
-	shuffle(nodes)
+	shuffle(nodes, t.rng)
 
 	for _, item := range nodes {
 		err := t.AddWeighted(item.mean, item.count)
@@ -227,7 +228,7 @@ func (t *TDigest) Merge(other *TDigest) error {
 	}
 
 	nodes := other.summary.Data()
-	shuffle(nodes)
+	shuffle(nodes, t.rng)
 
 	for _, item := range nodes {
 		err := t.AddWeighted(item.mean, item.count)
@@ -254,9 +255,9 @@ func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
 	}
 }
 
-func shuffle(data []centroid) {
+func shuffle(data []centroid, rng TDigestRNG) {
 	for i := len(data) - 1; i > 1; i-- {
-		j := rand.Intn(i + 1)
+		j := rng.Intn(i + 1)
 		data[i], data[j] = data[j], data[i]
 	}
 }
