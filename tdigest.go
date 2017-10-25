@@ -106,7 +106,7 @@ func weightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) float64 {
 	return x1*w1/(w1+w2) + x2*w2/(w1+w2)
 }
 
-func (t TDigest) _mean(index int) float64  { return t.summary.keys[index] }
+func (t TDigest) _mean(index int) float64  { return t.summary.means[index] }
 func (t TDigest) _count(index int) float64 { return float64(t.summary.counts[index]) }
 
 // Add registers a new sample in the digest.
@@ -245,7 +245,7 @@ func (t *TDigest) Len() int { return t.summary.Len() }
 func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
 	s := t.summary
 	for i := 0; i < s.Len(); i++ {
-		if !f(s.keys[i], s.counts[i]) {
+		if !f(s.means[i], s.counts[i]) {
 			break
 		}
 	}

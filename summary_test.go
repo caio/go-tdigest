@@ -26,8 +26,8 @@ func TestBasics(t *testing.T) {
 }
 
 func checkSorted(s *summary, t *testing.T) {
-	if !sort.Float64sAreSorted(s.keys) {
-		t.Fatalf("Keys are not sorted! %v", s.keys)
+	if !sort.Float64sAreSorted(s.means) {
+		t.Fatalf("Keys are not sorted! %v", s.means)
 	}
 }
 
@@ -69,8 +69,8 @@ func TestCore(t *testing.T) {
 			continue
 		}
 
-		if s.keys[i] != k || s.counts[i] != v {
-			t.Errorf("Wanted to find {%.4f,%d}, but found {%.4f,%d} instead", k, v, s.keys[i], s.counts[i])
+		if s.means[i] != k || s.counts[i] != v {
+			t.Errorf("Wanted to find {%.4f,%d}, but found {%.4f,%d} instead", k, v, s.means[i], s.counts[i])
 		}
 	}
 }
@@ -160,8 +160,8 @@ func TestFloor(t *testing.T) {
 	}
 
 	for i := 0; i < s.Len(); i++ {
-		m := s.keys[i]
-		f := s.keys[s.Floor(m+0.1)]
+		m := s.means[i]
+		f := s.means[s.Floor(m+0.1)]
 		if m != f {
 			t.Errorf("Erm, %.4f != %.4f", m, f)
 		}
@@ -173,21 +173,21 @@ func TestAdjustLeftRight(t *testing.T) {
 	keys := []float64{1, 2, 3, 4, 9, 5, 6, 7, 8}
 	counts := []uint32{1, 2, 3, 4, 9, 5, 6, 7, 8}
 
-	s := summary{keys: keys, counts: counts}
+	s := summary{means: keys, counts: counts}
 
 	s.adjustRight(4)
 
-	if !sort.Float64sAreSorted(s.keys) || s.counts[4] != 5 {
-		t.Errorf("adjustRight should have fixed the keys/counts state. %v %v", s.keys, s.counts)
+	if !sort.Float64sAreSorted(s.means) || s.counts[4] != 5 {
+		t.Errorf("adjustRight should have fixed the keys/counts state. %v %v", s.means, s.counts)
 	}
 
 	keys = []float64{1, 2, 3, 4, 0, 5, 6, 7, 8}
 	counts = []uint32{1, 2, 3, 4, 0, 5, 6, 7, 8}
 
-	s = summary{keys: keys, counts: counts}
+	s = summary{means: keys, counts: counts}
 	s.adjustLeft(4)
 
-	if !sort.Float64sAreSorted(s.keys) || s.counts[4] != 4 {
-		t.Errorf("adjustLeft should have fixed the keys/counts state. %v %v", s.keys, s.counts)
+	if !sort.Float64sAreSorted(s.means) || s.counts[4] != 4 {
+		t.Errorf("adjustLeft should have fixed the keys/counts state. %v %v", s.means, s.counts)
 	}
 }

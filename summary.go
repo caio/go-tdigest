@@ -19,19 +19,19 @@ func (c centroid) isValid() bool {
 var invalidCentroid = centroid{mean: math.NaN(), count: 0}
 
 type summary struct {
-	keys   []float64
+	means  []float64
 	counts []uint32
 }
 
 func newSummary(initialCapacity uint) *summary {
 	return &summary{
-		keys:   make([]float64, 0, initialCapacity),
+		means:  make([]float64, 0, initialCapacity),
 		counts: make([]uint32, 0, initialCapacity),
 	}
 }
 
 func (s summary) Len() int {
-	return len(s.keys)
+	return len(s.means)
 }
 
 func (s *summary) Add(key float64, value uint32) error {
@@ -46,28 +46,28 @@ func (s *summary) Add(key float64, value uint32) error {
 
 	idx := s.FindInsertionIndex(key)
 
-	s.keys = append(s.keys, math.NaN())
+	s.means = append(s.means, math.NaN())
 	s.counts = append(s.counts, 0)
 
-	copy(s.keys[idx+1:], s.keys[idx:])
+	copy(s.means[idx+1:], s.means[idx:])
 	copy(s.counts[idx+1:], s.counts[idx:])
 
-	s.keys[idx] = key
+	s.means[idx] = key
 	s.counts[idx] = value
 
 	return nil
 }
 
 func (s summary) Floor(x float64) int {
-	return sort.Search(len(s.keys), func(i int) bool {
-		return s.keys[i] >= x
+	return sort.Search(len(s.means), func(i int) bool {
+		return s.means[i] >= x
 	}) - 1
 }
 
 // Always insert to the right
 func (s summary) FindInsertionIndex(x float64) int {
-	return sort.Search(len(s.keys), func(i int) bool {
-		return s.keys[i] > x
+	return sort.Search(len(s.means), func(i int) bool {
+		return s.means[i] > x
 	})
 }
 
@@ -79,10 +79,10 @@ func (s summary) HeadSum(index int) (sum float64) {
 }
 
 func (s summary) FindIndex(x float64) int {
-	idx := sort.Search(len(s.keys), func(i int) bool {
-		return s.keys[i] >= x
+	idx := sort.Search(len(s.means), func(i int) bool {
+		return s.means[i] >= x
 	})
-	if idx < s.Len() && s.keys[idx] == x {
+	if idx < s.Len() && s.means[idx] == x {
 		return idx
 	}
 	return s.Len()
@@ -90,7 +90,7 @@ func (s summary) FindIndex(x float64) int {
 
 func (s summary) Iterate(f func(c centroid) bool) {
 	for i := 0; i < s.Len(); i++ {
-		if !f(centroid{s.keys[i], s.counts[i], i}) {
+		if !f(centroid{s.means[i], s.counts[i], i}) {
 			break
 		}
 	}
@@ -108,7 +108,7 @@ func (s summary) Data() []centroid {
 // return the index of the last item which the sum of counts
 // of items before it is less than or equal to `sum`. -1 in
 // case no centroid satisfies the requirement.
-// because it's cheap, this also returns the `HeadSum` until
+// Since it's cheap, this also returns the `HeadSum` until
 // the found index (i.e. cumSum = HeadSum(FloorSum(x)))
 func (s summary) FloorSum(sum float64) (index int, cumSum float64) {
 	index = -1
@@ -127,22 +127,22 @@ func (s summary) FloorSum(sum float64) (index int, cumSum float64) {
 }
 
 func (s *summary) setAt(index int, mean float64, count uint32) {
-	s.keys[index] = mean
+	s.means[index] = mean
 	s.counts[index] = count
 	s.adjustRight(index)
 	s.adjustLeft(index)
 }
 
 func (s *summary) adjustRight(index int) {
-	for i := index + 1; i < len(s.keys) && s.keys[i-1] > s.keys[i]; i++ {
-		s.keys[i-1], s.keys[i] = s.keys[i], s.keys[i-1]
+	for i := index + 1; i < len(s.means) && s.means[i-1] > s.means[i]; i++ {
+		s.means[i-1], s.means[i] = s.means[i], s.means[i-1]
 		s.counts[i-1], s.counts[i] = s.counts[i], s.counts[i-1]
 	}
 }
 
 func (s *summary) adjustLeft(index int) {
-	for i := index - 1; i >= 0 && s.keys[i] > s.keys[i+1]; i-- {
-		s.keys[i], s.keys[i+1] = s.keys[i+1], s.keys[i]
+	for i := index - 1; i >= 0 && s.means[i] > s.means[i+1]; i-- {
+		s.means[i], s.means[i+1] = s.means[i+1], s.means[i]
 		s.counts[i], s.counts[i+1] = s.counts[i+1], s.counts[i]
 	}
 }
