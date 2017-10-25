@@ -26,3 +26,26 @@ func Compression(compression uint32) tdigestOption {
 		return nil
 	}
 }
+
+// RandomNumberGenerator sets the RNG to be used internally
+//
+// This allows changing which random number source is used when using
+// the TDigest structure (rngs are used when deciding which candidate
+// centroid to merge with and when compressing or merging with
+// another digest for it increases accuracy). This functionality is
+// particularly useful for testing or when you want to disconnect
+// your sample collection from the (default) shared random source
+// to minimize lock contention.
+func RandomNumberGenerator(rng TDigestRNG) tdigestOption {
+	return func(t *TDigest) error {
+		t.rng = rng
+		return nil
+	}
+}
+
+// LocalRandomNumberGenerator makes the TDigest use the default
+// `math/random` functions but with an unshared source that is
+// seeded with the given `seed` parameter.
+func LocalRandomNumberGenerator(seed int64) tdigestOption {
+	return RandomNumberGenerator(newLocalRNG(seed))
+}
