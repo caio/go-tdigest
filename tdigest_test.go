@@ -288,54 +288,58 @@ func TestMerge(t *testing.T) {
 		t.Skipf("Skipping merge test. Short flag is on")
 	}
 
-	const numItems = 10000
-	const numSubs = 5
+	const numItems = 100000
 
-	data := make([]float64, numItems)
-	var subs [numSubs]*TDigest
+	for _, numSubs := range []int{2, 5, 10, 20, 50, 100} {
+		data := make([]float64, numItems)
 
-	dist1 := New(10)
-
-	for i := 0; i < numSubs; i++ {
-		subs[i] = New(10)
-	}
-
-	for i := 0; i < numItems; i++ {
-		num := rand.Float64()
-
-		data[i] = num
-		_ = dist1.Add(num, 1)
-		for j := 0; j < numSubs; j++ {
-			_ = subs[j].Add(num, 1)
+		subs := make([]*TDigest, numSubs)
+		for i := 0; i < numSubs; i++ {
+			subs[i] = New(100)
 		}
-	}
 
-	dist2 := New(10)
-	for i := 0; i < numSubs; i++ {
-		_ = dist2.Merge(subs[i])
-	}
+		dist := New(100)
+		for i := 0; i < numItems; i++ {
+			num := rand.Float64()
 
-	// Merge empty. Should be no-op
-	err := dist2.Merge(New(10))
-	if err != nil {
-		t.Errorf("Merge() with an empty digest should be a noop. Got %s", err)
-	}
-
-	sort.Float64s(data)
-
-	for _, p := range []float64{0.001, 0.01, 0.1, 0.2, 0.3, 0.5} {
-		q := quantile(p, data)
-		p1 := dist1.Quantile(p)
-		p2 := dist2.Quantile(p)
-
-		e1 := math.Abs(p1 - q)
-		e2 := math.Abs(p1 - q)
-
-		if e2/p >= 0.3 {
-			t.Errorf("Relative error for %f above threshold. q=%f p1=%f p2=%f e1=%f e2=%f", p, q, p1, p2, e1, e2)
+			data[i] = num
+			_ = dist.Add(num, 1)
+			subs[i%numSubs].Add(num, 1)
 		}
-		if e2 >= 0.015 {
-			t.Errorf("Absolute error for %f above threshold. q=%f p1=%f p2=%f e1=%f e2=%f", p, q, p1, p2, e1, e2)
+
+		dist.Compress()
+
+		dist2 := New(100)
+		for i := 0; i < numSubs; i++ {
+			dist2.Merge(subs[i])
+		}
+
+		if dist.count != dist2.count {
+			t.Errorf("Expected the number of centroids to be the same. %d != %d", dist.count, dist2.count)
+		}
+
+		if dist2.count != numItems {
+			t.Errorf("Items shouldn't have disappeared. %d != %d", dist2.count, numItems)
+		}
+
+		sort.Float64s(data)
+
+		for _, q := range []float64{0.001, 0.01, 0.1, 0.2, 0.3, 0.5} {
+			z := quantile(q, data)
+			p1 := dist.Quantile(q)
+			p2 := dist2.Quantile(q)
+
+			e1 := p1 - z
+			e2 := p2 - z
+
+			if math.Abs(e2)/q >= 0.3 {
+				t.Errorf("rel >= 0.3: parts=%3d q=%.3f e1=%.4f e2=%.4f rel=%.3f real=%.3f",
+					numSubs, q, e1, e2, math.Abs(e2)/q, z-q)
+			}
+			if math.Abs(e2) >= 0.015 {
+				t.Errorf("e2 >= 0.015: parts=%3d q=%.3f e1=%.4f e2=%.4f rel=%.3f real=%.3f",
+					numSubs, q, e1, e2, math.Abs(e2)/q, z-q)
+			}
 		}
 	}
 }
