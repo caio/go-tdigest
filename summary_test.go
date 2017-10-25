@@ -10,14 +10,6 @@ import (
 func TestBasics(t *testing.T) {
 	s := newSummary(2)
 
-	for _, n := range []float64{12, 13, 14, 15} {
-		item := s.Find(n)
-
-		if item.isValid() {
-			t.Errorf("Found something for non existing key %.0f: %v", n, item)
-		}
-	}
-
 	err := s.Add(1, 1)
 
 	if err != nil {
@@ -51,20 +43,16 @@ func TestCore(t *testing.T) {
 		t.Errorf("Initial size should be zero regardless of capacity. Got %d", s.Len())
 	}
 
+	// construct a summary made of unique items only
 	for i := 0; i < maxDataSize; i++ {
 		k := rand.Float64()
 		v := rand.Uint32()
 
-		err := s.Add(k, v)
-
-		if err != nil {
-			_, exists := testData[k]
-			if !exists {
-				t.Errorf("Failed to insert %.2f even though it doesn't exist yet", k)
-			}
+		_, exists := testData[k]
+		if !exists {
+			_ = s.Add(k, v)
+			testData[k] = v
 		}
-
-		testData[k] = v
 	}
 
 	checkSorted(s, t)
@@ -74,48 +62,38 @@ func TestCore(t *testing.T) {
 	}
 
 	for k, v := range testData {
-		c := s.Find(k)
-		if !c.isValid() || c.count != v {
-			t.Errorf("Find(%.0f) returned %d, expected %d", k, c.count, v)
+		i := s.FindIndex(k)
+
+		if i == s.Len() {
+			t.Errorf("Couldn't find previously added key on summary")
+			continue
+		}
+
+		if s.keys[i] != k || s.counts[i] != v {
+			t.Errorf("Wanted to find {%.4f,%d}, but found {%.4f,%d} instead", k, v, s.keys[i], s.counts[i])
 		}
 	}
 }
 
-func TestGetAt(t *testing.T) {
-	data := make(map[int]uint32)
-	const maxDataSize = 1000
+func TestSetAtNeverBreaksSorting(t *testing.T) {
+	s := newSummary(10)
 
-	s := newSummary(maxDataSize)
-
-	c := s.At(0)
-
-	if c.isValid() {
-		t.Errorf("At() on an empty structure should give invalid data. Got %v", c)
+	for _, i := range []float64{10, 10, 10, 10, 10} {
+		s.Add(i, 1)
 	}
 
-	for i := 0; i < maxDataSize; i++ {
-		data[i] = rand.Uint32()
-		_ = s.Add(float64(i), data[i])
-	}
+	s.setAt(0, 30, 1)
+	checkSorted(s, t)
 
-	for i, v := range data {
-		c1 := s.At(i)
-		if !c1.isValid() || c1.count != v {
-			t.Errorf("At(%d) = %d. Should've been %d", i, c1.count, v)
-		}
-	}
+	s.setAt(s.Len()-1, 0, 1)
+	checkSorted(s, t)
 
-	c = s.At(s.Len())
+	s.setAt(3, 10.1, 1)
+	checkSorted(s, t)
 
-	if c.isValid() {
-		t.Errorf("At() past the slice length should give invalid data")
-	}
+	s.setAt(3, 9.9, 1)
+	checkSorted(s, t)
 
-	c = s.At(-10)
-
-	if c.isValid() {
-		t.Errorf("At() with negative index should give invalid data")
-	}
 }
 
 func TestIterate(t *testing.T) {
@@ -146,71 +124,47 @@ func TestIterate(t *testing.T) {
 	}
 }
 
-func TestCeilingAndFloor(t *testing.T) {
+func TestFloorSum(t *testing.T) {
 	s := newSummary(100)
-
-	ceil, floor := s.ceilingAndFloorItems(1)
-
-	if ceil.isValid() || floor.isValid() {
-		t.Errorf("Empty centroids must return invalid ceiling and floor items")
+	var total uint32
+	for i := 0; i < 100; i++ {
+		count := uint32(rand.Intn(10) + 1)
+		s.Add(rand.Float64(), count)
+		total += count
 	}
 
-	_ = s.Add(0.4, 1)
-
-	ceil, floor = s.ceilingAndFloorItems(0.3)
-
-	if floor.isValid() || ceil.mean != 0.4 {
-		t.Errorf("Expected to find a ceil and NOT find a floor. ceil=%v, floor=%v", ceil, floor)
+	idx, _ := s.FloorSum(-1)
+	if idx != -1 {
+		t.Errorf("Expected no centroid to satisfy -1 but got index=%d", idx)
 	}
 
-	ceil, floor = s.ceilingAndFloorItems(0.5)
+	for i := float64(0); i < float64(total)+10; i++ {
+		node, _ := s.FloorSum(i)
+		if s.HeadSum(node) > i {
+			t.Errorf("headSum(%d)=%.0f (>%.0f)", node, s.HeadSum(node), i)
+		}
+		if node+1 < s.Len() && s.HeadSum(node+1) <= i {
+			t.Errorf("headSum(%d)=%.0f (>%.0f)", node+1, s.HeadSum(node+1), i)
+		}
+	}
+}
 
-	if ceil.isValid() || floor.mean != 0.4 {
-		t.Errorf("Expected to find a floor and NOT find a ceiling. ceil=%v, floor=%v", ceil, floor)
+func TestFloor(t *testing.T) {
+	s := newSummary(200)
+	for i := float64(0); i < 101; i++ {
+		s.Add(i/2.0, 1)
 	}
 
-	_ = s.Add(0.1, 2)
-
-	ceil, floor = s.ceilingAndFloorItems(0.2)
-
-	if ceil.mean != 0.4 || floor.mean != 0.1 {
-		t.Errorf("Expected to find a ceiling and a floor. ceil=%v, floor=%v", ceil, floor)
+	if s.Floor(-30) != -1 {
+		t.Errorf("Shouldn't have found a floor index. Got %d", s.Floor(-30))
 	}
 
-	_ = s.Add(0.21, 3)
-
-	ceil, floor = s.ceilingAndFloorItems(0.2)
-
-	if ceil.mean != 0.21 || floor.mean != 0.1 {
-		t.Errorf("Ceil should've shrunk. ceil=%v, floor=%v", ceil, floor)
-	}
-
-	_ = s.Add(0.1999, 1)
-
-	ceil, floor = s.ceilingAndFloorItems(0.2)
-
-	if ceil.mean != 0.21 || floor.mean != 0.1999 {
-		t.Errorf("Floor should've shrunk. ceil=%v, floor=%v", ceil, floor)
-	}
-
-	ceil, floor = s.ceilingAndFloorItems(10)
-
-	if ceil.isValid() {
-		t.Errorf("Expected an invalid ceil. Got %v", ceil)
-	}
-
-	ceil, floor = s.ceilingAndFloorItems(0.0001)
-
-	if floor.isValid() {
-		t.Errorf("Expected an invalid floor. Got %v", floor)
-	}
-
-	m := float64(0.42)
-	_ = s.Add(m, 1)
-	ceil, floor = s.ceilingAndFloorItems(m)
-
-	if ceil.mean != m || floor.mean != m {
-		t.Errorf("ceiling and floor of an existing item should be the item itself")
+	for i := 0; i < s.Len(); i++ {
+		m := s.keys[i]
+		f := s.keys[s.Floor(m+0.1)]
+		if m != f {
+			t.Errorf("Erm, %.4f != %.4f", m, f)
+		}
 	}
 }
 

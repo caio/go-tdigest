@@ -7,6 +7,10 @@ import (
 	"testing"
 )
 
+func init() {
+	rand.Seed(0xDEADBEE)
+}
+
 // Test of tdigest internals and accuracy. Note no t.Parallel():
 // during tests the default random seed is consistent, but varying
 // concurrency scheduling mixes up the random values used in each test.
@@ -32,40 +36,19 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
 	}
 
-	if tdigest.summary.Min().mean != 0.4 {
-		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
-	}
-
-	if tdigest.summary.Max().mean != 0.5 {
-		t.Errorf("Min() returned an unexpected centroid: %v", tdigest.summary.Min())
-	}
-
-	_ = tdigest.Add(0.4, 2)
-	_ = tdigest.Add(0.4, 3)
-
-	if tdigest.summary.Len() != 2 {
-		t.Errorf("Adding centroids of same mean shouldn't change size")
-	}
-
-	y := tdigest.summary.Find(0.4)
-
-	if y.count != 6 || y.mean != 0.4 {
-		t.Errorf("Adding centroids with same mean should increment the count only. Got %v", y)
-	}
-
 	err := tdigest.Add(0, 0)
 
 	if err == nil {
 		t.Errorf("Expected Add() to error out with input (0,0)")
 	}
+}
 
-	if tdigest.Quantile(0.9999999) != tdigest.summary.Max().mean {
-		t.Errorf("High quantiles with little data should give out the MAX recorded mean")
+func closeEnough(a float64, b float64) bool {
+	const EPS = 0.000001
+	if (a-b < EPS) && (b-a < EPS) {
+		return true
 	}
-
-	if tdigest.Quantile(0.0000001) != tdigest.summary.Min().mean {
-		t.Errorf("Low quantiles with little data should give out the MIN recorded mean")
-	}
+	return false
 }
 
 func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *testing.T) {
@@ -78,7 +61,7 @@ func assertDifferenceSmallerThan(tdigest *TDigest, p float64, m float64, t *test
 func TestUniformDistribution(t *testing.T) {
 	tdigest := New(100)
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 100000; i++ {
 		_ = tdigest.Add(rand.Float64(), 1)
 	}
 
@@ -104,9 +87,7 @@ func assertDifferenceFromQuantile(data []float64, tdigest *TDigest, p float64, m
 }
 
 func TestSequentialInsertion(t *testing.T) {
-	tdigest := New(10)
-
-	rand.Seed(0xDEADBEEF)
+	tdigest := New(100)
 
 	data := make([]float64, 10000)
 	for i := 0; i < len(data); i++ {
@@ -129,7 +110,7 @@ func TestSequentialInsertion(t *testing.T) {
 }
 
 func TestNonSequentialInsertion(t *testing.T) {
-	tdigest := New(10)
+	tdigest := New(100)
 
 	// Not quite a uniform distribution, but close.
 	data := make([]float64, 1000)
@@ -387,10 +368,6 @@ func TestPanic(t *testing.T) {
 	shouldPanic(func() {
 		tdigest.Quantile(42)
 	}, t, "Quantile > 1 should panic!")
-
-	shouldPanic(func() {
-		tdigest.findNearestCentroids(0.2)
-	}, t, "findNearestCentroids on empty summary should panic!")
 }
 
 func TestForEachCentroid(t *testing.T) {
