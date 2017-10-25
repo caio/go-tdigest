@@ -58,7 +58,7 @@ func (t *TDigest) Quantile(q float64) float64 {
 	if t.Len() == 0 {
 		return math.NaN()
 	} else if t.Len() == 1 {
-		return t._mean(0)
+		return t.summary.Mean(0)
 	}
 
 	index := q * float64(t.count-1)
@@ -67,32 +67,32 @@ func (t *TDigest) Quantile(q float64) float64 {
 	next, total := t.summary.FloorSum(index)
 
 	if next > 0 {
-		previousMean = t._mean(next - 1)
-		previousIndex = total - (t._count(next-1)+1)/2
+		previousMean = t.summary.Mean(next - 1)
+		previousIndex = total - float64(t.summary.Count(next-1)+1)/2
 	}
 
 	for {
-		nextIndex := total + (t._count(next)-1)/2
+		nextIndex := total + float64(t.summary.Count(next)-1)/2
 		if nextIndex >= index {
 			if math.IsNaN(previousMean) {
 				// the index is before the 1st centroid
 				if nextIndex == previousIndex {
-					return t._mean(next)
+					return t.summary.Mean(next)
 				}
 				// assume linear growth
-				nextIndex2 := total + t._count(next) + (t._count(next+1)-1)/2
-				previousMean = (nextIndex2*t._mean(next) - nextIndex*t._mean(next+1)) / (nextIndex2 - nextIndex)
+				nextIndex2 := total + float64(t.summary.Count(next)) + float64(t.summary.Count(next+1)-1)/2
+				previousMean = (nextIndex2*t.summary.Mean(next) - nextIndex*t.summary.Mean(next+1)) / (nextIndex2 - nextIndex)
 			}
 			// common case: two centroids found, the result in inbetween
-			return _quantile(index, previousIndex, nextIndex, previousMean, t._mean(next))
+			return _quantile(index, previousIndex, nextIndex, previousMean, t.summary.Mean(next))
 		} else if next+1 == t.Len() {
 			// the index is after the last centroid
 			nextIndex2 := float64(t.count - 1)
-			nextMean2 := (t._mean(next)*(nextIndex2-previousIndex) - previousMean*(nextIndex2-nextIndex)) / (nextIndex - previousIndex)
-			return _quantile(index, nextIndex, nextIndex2, t._mean(next), nextMean2)
+			nextMean2 := (t.summary.Mean(next)*(nextIndex2-previousIndex) - previousMean*(nextIndex2-nextIndex)) / (nextIndex - previousIndex)
+			return _quantile(index, nextIndex, nextIndex2, t.summary.Mean(next), nextMean2)
 		}
-		total += t._count(next)
-		previousMean = t._mean(next)
+		total += float64(t.summary.Count(next))
+		previousMean = t.summary.Mean(next)
 		previousIndex = nextIndex
 		next++
 	}
@@ -105,9 +105,6 @@ func weightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) float64 {
 	}
 	return x1*w1/(w1+w2) + x2*w2/(w1+w2)
 }
-
-func (t TDigest) _mean(index int) float64  { return t.summary.means[index] }
-func (t TDigest) _count(index int) float64 { return float64(t.summary.counts[index]) }
 
 // Add registers a new sample in the digest.
 // It's the main entry point for the digest and very likely the only
@@ -137,7 +134,7 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 	minDistance := math.MaxFloat64
 	lastNeighbor := t.Len()
 	for neighbor := start; neighbor < t.Len(); neighbor++ {
-		z := math.Abs(t._mean(neighbor) - x)
+		z := math.Abs(t.summary.Mean(neighbor) - x)
 		if z < minDistance {
 			start = neighbor
 			minDistance = z
@@ -152,7 +149,7 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 	var n float32
 
 	for neighbor := start; neighbor != lastNeighbor; neighbor++ {
-		c := t._count(neighbor)
+		c := float64(t.summary.Count(neighbor))
 		var q float64
 		if t.count == 1 {
 			q = 0.5
@@ -173,8 +170,8 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 	if closest == t.Len() {
 		t.summary.Add(x, w)
 	} else {
-		c := t._count(closest)
-		newMean := weightedAverage(t._mean(closest), c, x, float64(w))
+		c := float64(t.summary.Count(closest))
+		newMean := weightedAverage(t.summary.Mean(closest), c, x, float64(w))
 		t.summary.setAt(closest, newMean, uint32(c)+w)
 	}
 	t.count += w

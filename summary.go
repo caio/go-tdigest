@@ -88,6 +88,14 @@ func (s summary) FindIndex(x float64) int {
 	return s.Len()
 }
 
+func (s summary) Mean(uncheckedIndex int) float64 {
+	return s.means[uncheckedIndex]
+}
+
+func (s summary) Count(uncheckedIndex int) uint32 {
+	return s.counts[uncheckedIndex]
+}
+
 func (s summary) Iterate(f func(c centroid) bool) {
 	for i := 0; i < s.Len(); i++ {
 		if !f(centroid{s.means[i], s.counts[i], i}) {
