@@ -26,7 +26,7 @@ Or if you're planning on contributing or just feeling adventurous:
 
     go get github.com/caio/go-tdigest
 
-## Usage
+## Example Usage
 
 ```go
 package main
@@ -41,15 +41,32 @@ import (
 )
 
 func main() {
+        // Analogue to tdigest.New(tdigest.Compression(100))
         var t = tdigest.New()
 
         for i := 0; i < 10000; i++ {
+                // Analogue to t.AddWeighted(rand.Float64(), 1)
                 t.Add(rand.Float64())
         }
 
         fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
 }
 ```
+
+## Configuration
+
+You can configure your digest upon creation with options documented
+at options.go. Example:
+
+```go
+// Construct a digest with compression=200 and it's own
+// (thread-unsafe) RNG seeded with 0xCA10:
+digest := tdigest.New(
+        tdigest.Compression(200),
+        tdigest.LocalRandomNumberGenerator(0xCA10),
+)
+```
+
 
 ## References
 
