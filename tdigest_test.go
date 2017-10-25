@@ -29,22 +29,22 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Quantile() on an empty digest should return NaN. Got: %.4f", tdigest.Quantile(0.1))
 	}
 
-	_ = tdigest.Add(0.4, 1)
+	_ = tdigest.Add(0.4)
 
 	if tdigest.Quantile(0.1) != 0.4 {
 		t.Errorf("Quantile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Quantile(0.1))
 	}
 
-	_ = tdigest.Add(0.5, 1)
+	_ = tdigest.Add(0.5)
 
 	if tdigest.summary.Len() != 2 {
 		t.Errorf("Expected size 2, got %d", tdigest.summary.Len())
 	}
 
-	err := tdigest.Add(0, 0)
+	err := tdigest.AddWeighted(0, 0)
 
 	if err == nil {
-		t.Errorf("Expected Add() to error out with input (0,0)")
+		t.Errorf("Expected AddWeighted() to error out with input (0,0)")
 	}
 }
 
@@ -67,7 +67,7 @@ func TestUniformDistribution(t *testing.T) {
 	tdigest := uncheckedNew()
 
 	for i := 0; i < 100000; i++ {
-		_ = tdigest.Add(rand.Float64(), 1)
+		_ = tdigest.Add(rand.Float64())
 	}
 
 	assertDifferenceSmallerThan(tdigest, 0.5, 0.02, t)
@@ -100,7 +100,7 @@ func TestSequentialInsertion(t *testing.T) {
 	}
 
 	for i := 0; i < len(data); i++ {
-		_ = tdigest.Add(data[i], 1)
+		_ = tdigest.Add(data[i])
 
 		assertDifferenceFromQuantile(data[:i+1], tdigest, 0.001, 1.0+0.001*float64(i), t)
 		assertDifferenceFromQuantile(data[:i+1], tdigest, 0.01, 1.0+0.005*float64(i), t)
@@ -127,7 +127,7 @@ func TestNonSequentialInsertion(t *testing.T) {
 	sorted := make([]float64, 0, len(data))
 
 	for i := 0; i < len(data); i++ {
-		_ = tdigest.Add(data[i], 1)
+		_ = tdigest.Add(data[i])
 		sorted = append(sorted, data[i])
 
 		// Estimated quantiles are all over the place for low counts, which is
@@ -157,9 +157,9 @@ func TestNonSequentialInsertion(t *testing.T) {
 func TestSingletonInACrowd(t *testing.T) {
 	tdigest := uncheckedNew()
 	for i := 0; i < 10000; i++ {
-		tdigest.Add(10, 1)
+		tdigest.Add(10)
 	}
-	tdigest.Add(20, 1)
+	tdigest.Add(20)
 	tdigest.Compress()
 
 	for _, q := range []float64{0, 0.5, 0.8, 0.9, 0.99, 0.999} {
@@ -185,7 +185,7 @@ func TestRespectBounds(t *testing.T) {
 
 	data := []float64{0, 279, 2, 281}
 	for _, f := range data {
-		tdigest.Add(f, 1)
+		tdigest.Add(f)
 	}
 
 	quantiles := []float64{0.01, 0.25, 0.5, 0.75, 0.999}
@@ -206,7 +206,7 @@ func TestWeights(t *testing.T) {
 	// Create data slice with repeats matching weights we gave to tdigest
 	data := []float64{}
 	for i := 0; i < 100; i++ {
-		_ = tdigest.Add(float64(i), uint32(i))
+		_ = tdigest.AddWeighted(float64(i), uint32(i))
 
 		for j := 0; j < i; j++ {
 			data = append(data, float64(i))
@@ -227,9 +227,9 @@ func TestWeights(t *testing.T) {
 func TestIntegers(t *testing.T) {
 	tdigest := uncheckedNew()
 
-	_ = tdigest.Add(1, 1)
-	_ = tdigest.Add(2, 1)
-	_ = tdigest.Add(3, 1)
+	_ = tdigest.Add(1)
+	_ = tdigest.Add(2)
+	_ = tdigest.Add(3)
 
 	if tdigest.Quantile(0.5) != 2 {
 		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Quantile(0.5))
@@ -238,7 +238,7 @@ func TestIntegers(t *testing.T) {
 	tdigest = uncheckedNew()
 
 	for _, i := range []float64{1, 2, 2, 2, 2, 2, 2, 2, 3} {
-		_ = tdigest.Add(i, 1)
+		_ = tdigest.Add(i)
 	}
 
 	if tdigest.Quantile(0.5) != 2 {
@@ -289,8 +289,8 @@ func TestMerge(t *testing.T) {
 			num := rand.Float64()
 
 			data[i] = num
-			_ = dist.Add(num, 1)
-			subs[i%numSubs].Add(num, 1)
+			_ = dist.Add(num)
+			subs[i%numSubs].Add(num)
 		}
 
 		dist.Compress()
@@ -334,7 +334,7 @@ func TestCompressDoesntChangeCount(t *testing.T) {
 	tdigest := uncheckedNew()
 
 	for i := 0; i < 1000; i++ {
-		_ = tdigest.Add(rand.Float64(), 1)
+		_ = tdigest.Add(rand.Float64())
 	}
 
 	initialCount := tdigest.count
@@ -375,7 +375,7 @@ func TestForEachCentroid(t *testing.T) {
 	tdigest := uncheckedNew(Compression(10))
 
 	for i := 0; i < 100; i++ {
-		_ = tdigest.Add(float64(i), 1)
+		_ = tdigest.Add(float64(i))
 	}
 
 	// Iterate limited number.
@@ -409,7 +409,7 @@ func benchmarkAdd(compression uint32, b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		err := t.Add(data[n], 1)
+		err := t.AddWeighted(data[n], 1)
 		if err != nil {
 			b.Error(err)
 		}

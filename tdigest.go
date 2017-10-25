@@ -106,12 +106,15 @@ func weightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) float64 {
 	return x1*w1/(w1+w2) + x2*w2/(w1+w2)
 }
 
-// Add registers a new sample in the digest.
+// AddWeighted registers a new sample in the digest.
+//
 // It's the main entry point for the digest and very likely the only
 // method to be used for collecting samples. The count parameter is for
 // when you are registering a sample that occurred multiple times - the
 // most common value for this is 1.
-func (t *TDigest) Add(value float64, count uint32) (err error) {
+//
+// This will emit an error if `value` is NaN of if `count` is zero.
+func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 
 	if count == 0 {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
@@ -180,6 +183,12 @@ func (t *TDigest) Add(value float64, count uint32) (err error) {
 	return err
 }
 
+// Add(x) is an alias for AddWeighted(x,1)
+// Read the documentation for AddWeighted for more details.
+func (t *TDigest) Add(value float64) error {
+	return t.AddWeighted(value, 1)
+}
+
 // Compress tries to reduce the number of individual centroids stored
 // in the digest.
 // Compression trades off accuracy for performance and happens
@@ -198,7 +207,7 @@ func (t *TDigest) Compress() error {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		err := t.Add(item.mean, item.count)
+		err := t.AddWeighted(item.mean, item.count)
 		if err != nil {
 			return err
 		}
@@ -221,7 +230,7 @@ func (t *TDigest) Merge(other *TDigest) error {
 	shuffle(nodes)
 
 	for _, item := range nodes {
-		err := t.Add(item.mean, item.count)
+		err := t.AddWeighted(item.mean, item.count)
 		if err != nil {
 			return err
 		}

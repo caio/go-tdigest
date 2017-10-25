@@ -44,7 +44,7 @@ func main() {
         var t = tdigest.New()
 
         for i := 0; i < 10000; i++ {
-                t.Add(rand.Float64(), 1)
+                t.Add(rand.Float64())
         }
 
         fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))

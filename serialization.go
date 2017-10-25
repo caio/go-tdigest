@@ -109,7 +109,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 			return nil, err
 		}
 
-		err = t.Add(means[i], decUint)
+		err = t.AddWeighted(means[i], decUint)
 		if err != nil {
 			return nil, err
 		}
