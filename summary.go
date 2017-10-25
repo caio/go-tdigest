@@ -6,18 +6,6 @@ import (
 	"sort"
 )
 
-type centroid struct {
-	mean  float64
-	count uint32
-	index int
-}
-
-func (c centroid) isValid() bool {
-	return !math.IsNaN(c.mean) && c.count > 0
-}
-
-var invalidCentroid = centroid{mean: math.NaN(), count: 0}
-
 type summary struct {
 	means  []float64
 	counts []uint32
@@ -96,23 +84,6 @@ func (s summary) Count(uncheckedIndex int) uint32 {
 	return s.counts[uncheckedIndex]
 }
 
-func (s summary) Iterate(f func(c centroid) bool) {
-	for i := 0; i < s.Len(); i++ {
-		if !f(centroid{s.means[i], s.counts[i], i}) {
-			break
-		}
-	}
-}
-
-func (s summary) Data() []centroid {
-	data := make([]centroid, 0, s.Len())
-	s.Iterate(func(c centroid) bool {
-		data = append(data, c)
-		return true
-	})
-	return data
-}
-
 // return the index of the last item which the sum of counts
 // of items before it is less than or equal to `sum`. -1 in
 // case no centroid satisfies the requirement.
@@ -152,5 +123,20 @@ func (s *summary) adjustLeft(index int) {
 	for i := index - 1; i >= 0 && s.means[i] > s.means[i+1]; i-- {
 		s.means[i], s.means[i+1] = s.means[i+1], s.means[i]
 		s.counts[i], s.counts[i+1] = s.counts[i+1], s.counts[i]
+	}
+}
+
+func (s summary) ForEach(f func(float64, uint32) bool) {
+	for i := 0; i < len(s.means); i++ {
+		if !f(s.means[i], s.counts[i]) {
+			break
+		}
+	}
+}
+
+func (s summary) Clone() *summary {
+	return &summary{
+		means:  append([]float64{}, s.means...),
+		counts: append([]uint32{}, s.counts...),
 	}
 }

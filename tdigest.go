@@ -195,7 +195,7 @@ func (t *TDigest) Add(value float64) error {
 // Compression trades off accuracy for performance and happens
 // automatically after a certain amount of distinct samples have been
 // stored.
-func (t *TDigest) Compress() error {
+func (t *TDigest) Compress() (err error) {
 	if t.Len() <= 1 {
 		return nil
 	}
@@ -204,17 +204,13 @@ func (t *TDigest) Compress() error {
 	t.summary = newSummary(uint(t.Len()))
 	t.count = 0
 
-	nodes := oldTree.Data()
-	shuffle(nodes, t.rng)
+	shuffle(oldTree.means, oldTree.counts, t.rng)
+	oldTree.ForEach(func(mean float64, count uint32) bool {
+		err = t.AddWeighted(mean, count)
+		return err == nil
+	})
 
-	for _, item := range nodes {
-		err := t.AddWeighted(item.mean, item.count)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return err
 }
 
 // Merge joins a given digest into itself.
@@ -222,22 +218,20 @@ func (t *TDigest) Compress() error {
 // in separate threads and you want to compute quantiles over all the
 // samples. This is particularly important on a scatter-gather/map-reduce
 // scenario.
-func (t *TDigest) Merge(other *TDigest) error {
+func (t *TDigest) Merge(other *TDigest) (err error) {
 	if other.Len() == 0 {
 		return nil
 	}
 
-	nodes := other.summary.Data()
-	shuffle(nodes, t.rng)
+	// We must keep the other digest intact
+	data := other.summary.Clone()
+	shuffle(data.means, data.counts, t.rng)
 
-	for _, item := range nodes {
-		err := t.AddWeighted(item.mean, item.count)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	data.ForEach(func(mean float64, count uint32) bool {
+		err = t.AddWeighted(mean, count)
+		return err == nil
+	})
+	return err
 }
 
 // Len returns the number of centroids in the TDigest.
@@ -247,18 +241,13 @@ func (t *TDigest) Len() int { return t.summary.Len() }
 // Iteration stops when the supplied function returns false, or when all
 // centroids have been iterated.
 func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
-	s := t.summary
-	for i := 0; i < s.Len(); i++ {
-		if !f(s.means[i], s.counts[i]) {
-			break
-		}
-	}
+	t.summary.ForEach(f)
 }
 
-func shuffle(data []centroid, rng TDigestRNG) {
-	for i := len(data) - 1; i > 1; i-- {
+func shuffle(means []float64, counts []uint32, rng TDigestRNG) {
+	for i := len(means) - 1; i > 1; i-- {
 		j := rng.Intn(i + 1)
-		data[i], data[j] = data[j], data[i]
+		means[i], means[j], counts[i], counts[j] = means[j], means[i], counts[j], counts[i]
 	}
 }
 

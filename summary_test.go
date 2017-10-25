@@ -96,7 +96,7 @@ func TestSetAtNeverBreaksSorting(t *testing.T) {
 
 }
 
-func TestIterate(t *testing.T) {
+func TestForEach(t *testing.T) {
 
 	s := newSummary(10)
 	for _, i := range []uint32{1, 2, 3, 4, 5, 6} {
@@ -104,23 +104,23 @@ func TestIterate(t *testing.T) {
 	}
 
 	c := 0
-	s.Iterate(func(i centroid) bool {
+	s.ForEach(func(mean float64, count uint32) bool {
 		c++
 		return false
 	})
 
 	if c != 1 {
-		t.Errorf("Iterate must exit early if the closure returns false")
+		t.Errorf("ForEach must exit early if the closure returns false")
 	}
 
 	var tot uint32
-	s.Iterate(func(i centroid) bool {
-		tot += i.count
+	s.ForEach(func(mean float64, count uint32) bool {
+		tot += count
 		return true
 	})
 
 	if tot != 210 {
-		t.Errorf("Iterate must walk through the whole data if it always returns true")
+		t.Errorf("ForEach must walk through the whole data if it always returns true")
 	}
 }
 

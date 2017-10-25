@@ -35,9 +35,9 @@ func (t TDigest) AsBytes() ([]byte, error) {
 	}
 
 	var x float64
-	t.summary.Iterate(func(item centroid) bool {
-		delta := item.mean - x
-		x = item.mean
+	t.summary.ForEach(func(mean float64, count uint32) bool {
+		delta := mean - x
+		x = mean
 		err = binary.Write(buffer, endianess, float32(delta))
 
 		return err == nil
@@ -46,8 +46,8 @@ func (t TDigest) AsBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	t.summary.Iterate(func(item centroid) bool {
-		err = encodeUint(buffer, item.count)
+	t.summary.ForEach(func(mean float64, count uint32) bool {
+		err = encodeUint(buffer, count)
 		return err == nil
 	})
 	if err != nil {

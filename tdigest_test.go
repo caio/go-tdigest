@@ -246,8 +246,8 @@ func TestIntegers(t *testing.T) {
 	}
 
 	var tot uint32
-	tdigest.summary.Iterate(func(item centroid) bool {
-		tot += item.count
+	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+		tot += count
 		return true
 	})
 
