@@ -168,6 +168,32 @@ func TestNonSequentialInsertion(t *testing.T) {
 	}
 }
 
+func TestSingletonInACrowd(t *testing.T) {
+	tdigest := New(100)
+	for i := 0; i < 10000; i++ {
+		tdigest.Add(10, 1)
+	}
+	tdigest.Add(20, 1)
+	tdigest.Compress()
+
+	for _, q := range []float64{0, 0.5, 0.8, 0.9, 0.99, 0.999} {
+		if q == 0.999 {
+			// Test for 0.999 disabled since it doesn't
+			// pass in the reference implementation
+			continue
+		}
+		result := tdigest.Quantile(q)
+		if !closeEnough(result, 10) {
+			t.Errorf("Expected Quantile(%.3f) = 10, but got %.4f (size=%d)", q, result, tdigest.Len())
+		}
+	}
+
+	result := tdigest.Quantile(1)
+	if result != 20 {
+		t.Errorf("Expected Quantile(1) = 20, but got %.4f (size=%d)", result, tdigest.Len())
+	}
+}
+
 func TestRespectBounds(t *testing.T) {
 	tdigest := New(10)
 
