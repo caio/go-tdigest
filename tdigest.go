@@ -1,5 +1,23 @@
 // Package tdigest provides a highly accurate mergeable data-structure
 // for quantile estimation.
+//
+// Typical T-Digest use cases involve accumulating metrics on several
+// distinct nodes of a cluster and then merging them together to get
+// a system-wide quantile overview. Things such as: sensory data from
+// IoT devices, quantiles over enormous document datasets (think
+// ElasticSearch), performance metrics for distributed systems, etc.
+//
+// After you create (and configure, if desired) the digest:
+//     digest := tdigest.New(tdigest.Compression(100))
+//
+// You can then use it for registering measurements:
+//     digest.Add(number)
+//
+// Estimating quantiles:
+//     digest.Quantile(0.99)
+//
+// And merging with another digest:
+//     digest.Merge(otherDigest)
 package tdigest
 
 import (
@@ -8,11 +26,6 @@ import (
 )
 
 // TDigest is a quantile approximation data structure.
-// Typical T-Digest use cases involve accumulating metrics on several
-// distinct nodes of a cluster and then merging them together to get
-// a system-wide quantile overview. Things such as: sensory data from
-// IoT devices, quantiles over enormous document datasets (think
-// ElasticSearch), performance metrics for distributed systems, etc.
 type TDigest struct {
 	summary     *summary
 	compression float64
@@ -23,7 +36,9 @@ type TDigest struct {
 // New creates a new digest.
 //
 // By default the digest is constructed with a configuration that
-// should be useful for most use-cases.
+// should be useful for most use-cases. It comes with compression
+// set to 100 and uses the global random number generator (same
+// as using math/rand top-level functions).
 func New(options ...tdigestOption) (*TDigest, error) {
 	tdigest := &TDigest{
 		compression: 100,
@@ -50,6 +65,7 @@ func _quantile(index float64, previousIndex float64, nextIndex float64, previous
 }
 
 // Quantile returns the desired percentile estimation.
+//
 // Values of p must be between 0 and 1 (inclusive), will panic otherwise.
 func (t *TDigest) Quantile(q float64) float64 {
 	if q < 0 || q > 1 {
@@ -185,14 +201,15 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 }
 
 // Count returns the total number of samples this digest represents
-// (i.e.: how many times Add() was called on it plus all the counts of
-// other digests the current has merged with).
 //
+// The result represents how many times Add() was called on a digest
+// plus how many samples the digests it has been merged with had.
 // This is useful mainly for two scenarios:
 //
-// 1. Knowing if there is enough data so you can trust the quantiles
-// 2. Knowing if you've registered too many samples already and
-//    deciding what to do about it.
+// - Knowing if there is enough data so you can trust the quantiles
+//
+// - Knowing if you've registered too many samples already and
+// deciding what to do about it.
 //
 // For the second case one approach would be to create a side empty
 // digest and start registering samples on it as well as on the old
@@ -211,9 +228,15 @@ func (t *TDigest) Add(value float64) error {
 
 // Compress tries to reduce the number of individual centroids stored
 // in the digest.
+//
 // Compression trades off accuracy for performance and happens
 // automatically after a certain amount of distinct samples have been
 // stored.
+//
+// At any point in time you may call Compress on a digest, but you
+// may completely ignore this and it will compress itself automatically
+// after it grows too much. If you are minimizing network traffic
+// it might be a good idea to compress before serializing.
 func (t *TDigest) Compress() (err error) {
 	if t.Len() <= 1 {
 		return nil
@@ -233,6 +256,7 @@ func (t *TDigest) Compress() (err error) {
 }
 
 // Merge joins a given digest into itself.
+//
 // Merging is useful when you have multiple TDigest instances running
 // in separate threads and you want to compute quantiles over all the
 // samples. This is particularly important on a scatter-gather/map-reduce
@@ -257,6 +281,7 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 func (t *TDigest) Len() int { return t.summary.Len() }
 
 // ForEachCentroid calls the specified function for each centroid.
+//
 // Iteration stops when the supplied function returns false, or when all
 // centroids have been iterated.
 func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
