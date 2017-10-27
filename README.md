@@ -18,13 +18,21 @@ cooperate on bugs and/or requests.
 
 ## Installation
 
-The current stable version can be installed via:
+We use [Semantic Versioning][semver] for our releases and you can
+always reach the most recent stable release and documentation via
+`gopkg.in`. For example:
 
-    go get gopkg.in/caio/go-tdigest.v1
+    go get gopkg.in/caio/go-tdigest.v2
 
-Or if you're planning on contributing or just feeling adventurous:
+You can safely update tdigest like this and the API is guaranteed
+to not change.
+
+If you prefer to use proper dependency management (`dep`, `glide`,
+etc), directly using the official sources is encouraged:
 
     go get github.com/caio/go-tdigest
+
+[semver]: http://semver.org/
 
 ## Example Usage
 
@@ -34,10 +42,7 @@ package main
 import (
         "fmt"
         "math/rand"
-
-        "gopkg.in/caio/go-tdigest.v1"
-        // Or if you installed the development version:
-        // "github.com/caio/go-tdigest"
+        "github.com/caio/go-tdigest"
 )
 
 func main() {
@@ -56,7 +61,7 @@ func main() {
 ## Configuration
 
 You can configure your digest upon creation with options documented
-at options.go. Example:
+at [options.go](options.go). Example:
 
 ```go
 // Construct a digest with compression=200 and it's own
@@ -67,6 +72,17 @@ digest := tdigest.New(
 )
 ```
 
+## Porting Existing Code to the v2 API
+
+It's very easy to migrate to the new API:
+
+- Replace `tdigest.New(100)` with `tdigest.New()`
+- Replace `tdigest.New(number)` with `tdigest.New(tdigest.Compression(number))`
+- Replace `Add(x,1)` with `Add(x)`
+- Replace `Add(x, weight)` with `AddWeighted(x, weight)`
+- Remove any use of `tdigest.Len()` (or [open an issue][issues])
+
+[issues]: https://github.com/caio/go-tdigest/issues/new
 
 ## References
 
