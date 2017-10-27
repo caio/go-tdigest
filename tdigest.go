@@ -16,7 +16,7 @@ import (
 type TDigest struct {
 	summary     *summary
 	compression float64
-	count       uint32
+	count       uint64
 	rng         TDigestRNG
 }
 
@@ -123,7 +123,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 
 	if t.Len() == 0 {
 		err = t.summary.Add(value, count)
-		t.count = count
+		t.count = uint64(count)
 		return err
 	}
 
@@ -175,7 +175,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 		newMean := weightedAverage(t.summary.Mean(closest), c, value, float64(count))
 		t.summary.setAt(closest, newMean, uint32(c)+count)
 	}
-	t.count += count
+	t.count += uint64(count)
 
 	if float64(t.Len()) > 20*t.compression {
 		err = t.Compress()
