@@ -184,6 +184,25 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 	return err
 }
 
+// Count returns the total number of samples this digest represents
+// (i.e.: how many times Add() was called on it plus all the counts of
+// other digests the current has merged with).
+//
+// This is useful mainly for two scenarios:
+//
+// 1. Knowing if there is enough data so you can trust the quantiles
+// 2. Knowing if you've registered too many samples already and
+//    deciding what to do about it.
+//
+// For the second case one approach would be to create a side empty
+// digest and start registering samples on it as well as on the old
+// (big) one and then discard the bigger one after a certain criterion
+// is reached (say, minimum number of samples or a small relative
+// error between new and old digests).
+func (t TDigest) Count() uint64 {
+	return t.count
+}
+
 // Add(x) is an alias for AddWeighted(x,1)
 // Read the documentation for AddWeighted for more details.
 func (t *TDigest) Add(value float64) error {

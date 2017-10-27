@@ -300,12 +300,12 @@ func TestMerge(t *testing.T) {
 			dist2.Merge(subs[i])
 		}
 
-		if dist.count != dist2.count {
-			t.Errorf("Expected the number of centroids to be the same. %d != %d", dist.count, dist2.count)
+		if dist.Count() != dist2.Count() {
+			t.Errorf("Expected the number of centroids to be the same. %d != %d", dist.Count(), dist2.Count())
 		}
 
-		if dist2.count != numItems {
-			t.Errorf("Items shouldn't have disappeared. %d != %d", dist2.count, numItems)
+		if dist2.Count() != numItems {
+			t.Errorf("Items shouldn't have disappeared. %d != %d", dist2.Count(), numItems)
 		}
 
 		sort.Float64s(data)
@@ -337,15 +337,15 @@ func TestCompressDoesntChangeCount(t *testing.T) {
 		_ = tdigest.Add(rand.Float64())
 	}
 
-	initialCount := tdigest.count
+	initialCount := tdigest.Count()
 
 	err := tdigest.Compress()
 	if err != nil {
 		t.Errorf("Compress() triggered an unexpected error: %s", err)
 	}
 
-	if tdigest.count != initialCount {
-		t.Errorf("Compress() should not change count. Wanted %d, got %d", initialCount, tdigest.count)
+	if tdigest.Count() != initialCount {
+		t.Errorf("Compress() should not change count. Wanted %d, got %d", initialCount, tdigest.Count())
 	}
 }
 
