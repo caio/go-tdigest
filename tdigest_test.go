@@ -170,13 +170,13 @@ func TestSingletonInACrowd(t *testing.T) {
 		}
 		result := tdigest.Quantile(q)
 		if !closeEnough(result, 10) {
-			t.Errorf("Expected Quantile(%.3f) = 10, but got %.4f (size=%d)", q, result, tdigest.Len())
+			t.Errorf("Expected Quantile(%.3f) = 10, but got %.4f (size=%d)", q, result, tdigest.summary.Len())
 		}
 	}
 
 	result := tdigest.Quantile(1)
 	if result != 20 {
-		t.Errorf("Expected Quantile(1) = 20, but got %.4f (size=%d)", result, tdigest.Len())
+		t.Errorf("Expected Quantile(1) = 20, but got %.4f (size=%d)", result, tdigest.summary.Len())
 	}
 }
 
@@ -394,7 +394,7 @@ func TestForEachCentroid(t *testing.T) {
 		means = append(means, mean)
 		return true
 	})
-	if len(means) != tdigest.Len() {
+	if len(means) != tdigest.summary.Len() {
 		t.Errorf("ForEachCentroid did not handle all data")
 	}
 }

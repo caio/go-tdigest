@@ -72,9 +72,9 @@ func (t *TDigest) Quantile(q float64) float64 {
 		panic("q must be between 0 and 1 (inclusive)")
 	}
 
-	if t.Len() == 0 {
+	if t.summary.Len() == 0 {
 		return math.NaN()
-	} else if t.Len() == 1 {
+	} else if t.summary.Len() == 1 {
 		return t.summary.Mean(0)
 	}
 
@@ -102,7 +102,7 @@ func (t *TDigest) Quantile(q float64) float64 {
 			}
 			// common case: two centroids found, the result in inbetween
 			return _quantile(index, previousIndex, nextIndex, previousMean, t.summary.Mean(next))
-		} else if next+1 == t.Len() {
+		} else if next+1 == t.summary.Len() {
 			// the index is after the last centroid
 			nextIndex2 := float64(t.count - 1)
 			nextMean2 := (t.summary.Mean(next)*(nextIndex2-previousIndex) - previousMean*(nextIndex2-nextIndex)) / (nextIndex - previousIndex)
@@ -137,7 +137,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
 	}
 
-	if t.Len() == 0 {
+	if t.summary.Len() == 0 {
 		err = t.summary.Add(value, count)
 		t.count = uint64(count)
 		return err
@@ -149,8 +149,8 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 	}
 
 	minDistance := math.MaxFloat64
-	lastNeighbor := t.Len()
-	for neighbor := start; neighbor < t.Len(); neighbor++ {
+	lastNeighbor := t.summary.Len()
+	for neighbor := start; neighbor < t.summary.Len(); neighbor++ {
 		z := math.Abs(t.summary.Mean(neighbor) - value)
 		if z < minDistance {
 			start = neighbor
@@ -161,7 +161,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 		}
 	}
 
-	closest := t.Len()
+	closest := t.summary.Len()
 	sum := t.summary.HeadSum(start)
 	var n float32
 
@@ -184,7 +184,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 		sum += c
 	}
 
-	if closest == t.Len() {
+	if closest == t.summary.Len() {
 		t.summary.Add(value, count)
 	} else {
 		c := float64(t.summary.Count(closest))
@@ -193,7 +193,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 	}
 	t.count += uint64(count)
 
-	if float64(t.Len()) > 20*t.compression {
+	if float64(t.summary.Len()) > 20*t.compression {
 		err = t.Compress()
 	}
 
@@ -238,12 +238,12 @@ func (t *TDigest) Add(value float64) error {
 // after it grows too much. If you are minimizing network traffic
 // it might be a good idea to compress before serializing.
 func (t *TDigest) Compress() (err error) {
-	if t.Len() <= 1 {
+	if t.summary.Len() <= 1 {
 		return nil
 	}
 
 	oldTree := t.summary
-	t.summary = newSummary(uint(t.Len()))
+	t.summary = newSummary(uint(t.summary.Len()))
 	t.count = 0
 
 	shuffle(oldTree.means, oldTree.counts, t.rng)
@@ -262,7 +262,7 @@ func (t *TDigest) Compress() (err error) {
 // samples. This is particularly important on a scatter-gather/map-reduce
 // scenario.
 func (t *TDigest) Merge(other *TDigest) (err error) {
-	if other.Len() == 0 {
+	if other.summary.Len() == 0 {
 		return nil
 	}
 
@@ -276,9 +276,6 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 	})
 	return err
 }
-
-// Len returns the number of centroids in the TDigest.
-func (t *TDigest) Len() int { return t.summary.Len() }
 
 // ForEachCentroid calls the specified function for each centroid.
 //
