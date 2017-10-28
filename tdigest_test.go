@@ -29,10 +29,22 @@ func TestTInternals(t *testing.T) {
 		t.Errorf("Quantile() on an empty digest should return NaN. Got: %.4f", tdigest.Quantile(0.1))
 	}
 
+	if !math.IsNaN(tdigest.CDF(1)) {
+		t.Errorf("CDF() on an empty digest should return NaN. Got: %.4f", tdigest.CDF(1))
+	}
+
 	_ = tdigest.Add(0.4)
 
 	if tdigest.Quantile(0.1) != 0.4 {
 		t.Errorf("Quantile() on a single-sample digest should return the samples's mean. Got %.4f", tdigest.Quantile(0.1))
+	}
+
+	if tdigest.CDF(0.3) != 0 {
+		t.Errorf("CDF(x) on digest with a single centroid should return 0 if x < mean")
+	}
+
+	if tdigest.CDF(0.5) != 1 {
+		t.Errorf("CDF(x) on digest with a single centroid should return 1 if x >= mean")
 	}
 
 	_ = tdigest.Add(0.5)
@@ -256,6 +268,19 @@ func TestIntegers(t *testing.T) {
 	}
 }
 
+func cdf(x float64, data []float64) float64 {
+	var n1, n2 int
+	for i := 0; i < len(data); i++ {
+		if data[i] < x {
+			n1++
+		}
+		if data[i] <= x {
+			n2++
+		}
+	}
+	return float64(n1+n2) / 2.0 / float64(len(data))
+}
+
 func quantile(q float64, data []float64) float64 {
 	if len(data) == 0 {
 		return math.NaN()
@@ -325,6 +350,20 @@ func TestMerge(t *testing.T) {
 			if math.Abs(e2) >= 0.015 {
 				t.Errorf("e2 >= 0.015: parts=%3d q=%.3f e1=%.4f e2=%.4f rel=%.3f real=%.3f",
 					numSubs, q, e1, e2, math.Abs(e2)/q, z-q)
+			}
+
+			z = cdf(q, data)
+			e1 = dist.CDF(q) - z
+			e2 = dist2.CDF(q) - z
+
+			if math.Abs(e2)/q > 0.3 {
+				t.Errorf("CDF e2 < 0.015: parts=%3d q=%.3f e1=%.4f e2=%.4f rel=%.3f",
+					numSubs, q, e1, e2, math.Abs(e2)/q)
+			}
+
+			if math.Abs(e2) >= 0.015 {
+				t.Errorf("CDF e2 < 0.015: parts=%3d q=%.3f e1=%.4f e2=%.4f rel=%.3f",
+					numSubs, q, e1, e2, math.Abs(e2)/q)
 			}
 		}
 	}

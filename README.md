@@ -55,6 +55,7 @@ func main() {
         }
 
         fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
+        fmt.Printf("CDF(Quantile(.5)) = %.6f\n", t.CDF(t.Quantile(0.5)))
 }
 ```
 

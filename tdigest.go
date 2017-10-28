@@ -277,6 +277,52 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 	return err
 }
 
+// CDF computes the fraction in which all samples are less than
+// or equal to the given value.
+func (t *TDigest) CDF(value float64) float64 {
+	if t.summary.Len() == 0 {
+		return math.NaN()
+	} else if t.summary.Len() == 1 {
+		if value < t.summary.Mean(0) {
+			return 0
+		} else {
+			return 1
+		}
+	}
+
+	// We have at least 2 centroids
+	left := (t.summary.Mean(1) - t.summary.Mean(0)) / 2
+	right := left
+	tot := 0.0
+
+	for i := 1; i < t.summary.Len()-1; i++ {
+		prevMean := t.summary.Mean(i - 1)
+		if value < prevMean+right {
+			v := (tot + float64(t.summary.Count(i-1))*interpolate(value, prevMean-left, prevMean+right)) / float64(t.Count())
+			if v > 0 {
+				return v
+			}
+			return 0
+		}
+
+		tot += float64(t.summary.Count(i - 1))
+		left = right
+		right = (t.summary.Mean(i+1) - t.summary.Mean(i)) / 2
+	}
+
+	// last centroid
+	lastMean := t.summary.Mean(t.summary.Len() - 1)
+	if value < lastMean+right {
+		lastCount := float64(t.summary.Count(t.summary.Len() - 1))
+		return (tot + lastCount*interpolate(value, lastMean-left, lastMean+right)) / 2
+	}
+	return 1
+}
+
+func interpolate(x, x0, x1 float64) float64 {
+	return (x - x0) / (x1 - x0)
+}
+
 // ForEachCentroid calls the specified function for each centroid.
 //
 // Iteration stops when the supplied function returns false, or when all
