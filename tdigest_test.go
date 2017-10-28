@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
+
+	"github.com/leesper/go_rng"
 )
 
 func init() {
@@ -385,6 +387,49 @@ func TestCompressDoesntChangeCount(t *testing.T) {
 
 	if tdigest.Count() != initialCount {
 		t.Errorf("Compress() should not change count. Wanted %d, got %d", initialCount, tdigest.Count())
+	}
+}
+
+func TestGammaDistribution(t *testing.T) {
+	const numItems = 100000
+
+	digest := uncheckedNew()
+	gammaRNG := rng.NewGammaGenerator(0xDEADBEE)
+
+	data := make([]float64, numItems)
+	for i := 0; i < numItems; i++ {
+		data[i] = gammaRNG.Gamma(0.1, 0.1)
+		digest.Add(data[i])
+	}
+
+	sort.Float64s(data)
+
+	softErrors := 0
+	for _, q := range []float64{0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999} {
+
+		ix := float64(len(data))*q - 0.5
+		index := int(math.Floor(ix))
+		p := ix - float64(index)
+		realQuantile := data[index]*(1-p) + data[index+1]*p
+
+		// estimated cdf of real quantile(x)
+		if math.Abs(digest.CDF(realQuantile)-q) > 0.005 {
+			t.Errorf("Error in estimated CDF too high")
+		}
+
+		// real cdf of estimated quantile(x)
+		error := math.Abs(q - cdf(digest.Quantile(q), data))
+		if error > 0.005 {
+			softErrors++
+		}
+
+		if error > 0.012 {
+			t.Errorf("Error in estimated Quantile too high")
+		}
+	}
+
+	if softErrors >= 3 {
+		t.Errorf("Too many soft errors")
 	}
 }
 
