@@ -12,27 +12,24 @@ structure in Go.
 
 ## Project Status
 
-This project is activelly maintained. There hasn't been a need for new features
-or bugs in a while, so there isn't much activity but I'm more than willing to
-cooperate on bugs and/or requests.
+This project is activelly maintained. We are happy to collaborate on features
+and issues if/when they arrive.
 
 ## Installation
 
-We use [Semantic Versioning][semver] for our releases and you can
-always reach the most recent stable release and documentation via
-`gopkg.in`. For example:
-
-    go get gopkg.in/caio/go-tdigest.v2
-
-You can safely update tdigest like this and the API is guaranteed
-to not change.
-
-If you prefer to use proper dependency management (`dep`, `glide`,
-etc), directly using the official sources is encouraged:
+Our releases are tagged and signed following the [Semantic Versioning][semver]
+scheme. If you are using a dependency manager such as [dep][], the recommended
+way to is go about your business normally:
 
     go get github.com/caio/go-tdigest
 
+Otherwise we recommend to use the following so that you don't risk breaking
+your build because of an API change:
+
+    go get gopkg.in/caio/go-tdigest.v2
+
 [semver]: http://semver.org/
+[dep]: https://github.com/golang/dep
 
 ## Example Usage
 
@@ -65,7 +62,7 @@ You can configure your digest upon creation with options documented
 at [options.go](options.go). Example:
 
 ```go
-// Construct a digest with compression=200 and it's own
+// Construct a digest with compression=200 and its own
 // (thread-unsafe) RNG seeded with 0xCA10:
 digest := tdigest.New(
         tdigest.Compression(200),
