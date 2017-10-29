@@ -4,18 +4,23 @@ import (
 	"fmt"
 	"math"
 	"sort"
+
+	"github.com/yourbasic/fenwick"
 )
 
 type summary struct {
 	means  []float64
 	counts []uint32
+	bitree *fenwick.List
 }
 
 func newSummary(initialCapacity uint) *summary {
-	return &summary{
+	s := &summary{
 		means:  make([]float64, 0, initialCapacity),
 		counts: make([]uint32, 0, initialCapacity),
 	}
+	s.rebuildFenwickTree()
+	return s
 }
 
 func (s summary) Len() int {
@@ -43,7 +48,19 @@ func (s *summary) Add(key float64, value uint32) error {
 	s.means[idx] = key
 	s.counts[idx] = value
 
+	// Reinitialize the prefixSum cache
+	// we can likely be smarter when doing this
+	s.rebuildFenwickTree()
+
 	return nil
+}
+
+func (s *summary) rebuildFenwickTree() {
+	x := make([]int64, s.Len())
+	for i := 0; i < s.Len(); i++ {
+		x[i] = int64(s.counts[i])
+	}
+	s.bitree = fenwick.New(x...)
 }
 
 func (s summary) Floor(x float64) int {
@@ -60,10 +77,7 @@ func (s summary) FindInsertionIndex(x float64) int {
 }
 
 func (s summary) HeadSum(index int) (sum float64) {
-	for i := 0; i < index; i++ {
-		sum += float64(s.counts[i])
-	}
-	return sum
+	return float64(s.bitree.Sum(index))
 }
 
 func (s summary) FindIndex(x float64) int {
@@ -110,6 +124,7 @@ func (s *summary) setAt(index int, mean float64, count uint32) {
 	s.counts[index] = count
 	s.adjustRight(index)
 	s.adjustLeft(index)
+	s.bitree.Set(index, int64(count))
 }
 
 func (s *summary) adjustRight(index int) {

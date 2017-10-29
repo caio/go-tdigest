@@ -24,3 +24,7 @@
 [[constraint]]
   revision = "5344a9259b21627d94279721ab1f27eb029194e7"
   name = "github.com/leesper/go_rng"
+
+[[constraint]]
+  version = "1.2.0"
+  name = "github.com/yourbasic/fenwick"

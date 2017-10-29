@@ -6,9 +6,15 @@
   packages = ["."]
   revision = "5344a9259b21627d94279721ab1f27eb029194e7"
 
+[[projects]]
+  name = "github.com/yourbasic/fenwick"
+  packages = ["."]
+  revision = "7cb325001daae879940edf7b19da8557a51ca5f7"
+  version = "1.2.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "19f9623e18e30932906e83f04c0f62bf28811eca7762f2fb26c0d3bd55d45d5c"
+  inputs-digest = "eac5a7bc22a9b8d592de2752be2ab1f8707df0caf1a1e77087c88671cbb8c94d"
   solver-name = "gps-cdcl"
   solver-version = 1
