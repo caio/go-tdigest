@@ -143,46 +143,14 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 		return err
 	}
 
-	start := t.summary.Floor(value)
-	if start == -1 {
-		start = 0
+	begin := t.summary.Floor(value)
+	if begin == -1 {
+		begin = 0
 	}
 
-	minDistance := math.MaxFloat64
-	lastNeighbor := t.summary.Len()
-	for neighbor := start; neighbor < t.summary.Len(); neighbor++ {
-		z := math.Abs(t.summary.Mean(neighbor) - value)
-		if z < minDistance {
-			start = neighbor
-			minDistance = z
-		} else if z > minDistance {
-			lastNeighbor = neighbor
-			break
-		}
-	}
+	begin, end := t.findNeighbors(begin, value)
 
-	closest := t.summary.Len()
-	sum := t.summary.HeadSum(start)
-	var n float32
-
-	for neighbor := start; neighbor != lastNeighbor; neighbor++ {
-		c := float64(t.summary.Count(neighbor))
-		var q float64
-		if t.count == 1 {
-			q = 0.5
-		} else {
-			q = (sum + (c-1)/2) / float64(t.count-1)
-		}
-		k := 4 * float64(t.count) * q * (1 - q) / t.compression
-
-		if c+float64(count) <= k {
-			n++
-			if t.rng.Float32() < 1/n {
-				closest = neighbor
-			}
-		}
-		sum += c
-	}
+	closest := t.chooseMergeCandidate(begin, end, value, count)
 
 	if closest == t.summary.Len() {
 		err = t.summary.Add(value, count)
@@ -331,6 +299,48 @@ func interpolate(x, x0, x1 float64) float64 {
 // centroids have been iterated.
 func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
 	t.summary.ForEach(f)
+}
+
+func (t TDigest) findNeighbors(start int, value float64) (int, int) {
+	minDistance := math.MaxFloat64
+	lastNeighbor := t.summary.Len()
+	for neighbor := start; neighbor < t.summary.Len(); neighbor++ {
+		z := math.Abs(t.summary.Mean(neighbor) - value)
+		if z < minDistance {
+			start = neighbor
+			minDistance = z
+		} else if z > minDistance {
+			lastNeighbor = neighbor
+			break
+		}
+	}
+	return start, lastNeighbor
+}
+
+func (t TDigest) chooseMergeCandidate(begin, end int, value float64, count uint32) int {
+	closest := t.summary.Len()
+	sum := t.summary.HeadSum(begin)
+	var n float32
+
+	for neighbor := begin; neighbor != end; neighbor++ {
+		c := float64(t.summary.Count(neighbor))
+		var q float64
+		if t.count == 1 {
+			q = 0.5
+		} else {
+			q = (sum + (c-1)/2) / float64(t.count-1)
+		}
+		k := 4 * float64(t.count) * q * (1 - q) / t.compression
+
+		if c+float64(count) <= k {
+			n++
+			if t.rng.Float32() < 1/n {
+				closest = neighbor
+			}
+		}
+		sum += c
+	}
+	return closest
 }
 
 func shuffle(means []float64, counts []uint32, rng RNG) {
