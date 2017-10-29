@@ -17,7 +17,7 @@ type tdigestOption func(*TDigest) error
 //
 // Compression must be a value greater of equal to 1, will yield an
 // error otherwise.
-func Compression(compression uint32) tdigestOption {
+func Compression(compression uint32) tdigestOption { // nolint
 	return func(t *TDigest) error {
 		if compression < 1 {
 			return errors.New("Compression should be >= 1")
@@ -36,7 +36,7 @@ func Compression(compression uint32) tdigestOption {
 // particularly useful for testing or when you want to disconnect
 // your sample collection from the (default) shared random source
 // to minimize lock contention.
-func RandomNumberGenerator(rng TDigestRNG) tdigestOption {
+func RandomNumberGenerator(rng RNG) tdigestOption { // nolint
 	return func(t *TDigest) error {
 		t.rng = rng
 		return nil
@@ -46,6 +46,6 @@ func RandomNumberGenerator(rng TDigestRNG) tdigestOption {
 // LocalRandomNumberGenerator makes the TDigest use the default
 // `math/random` functions but with an unshared source that is
 // seeded with the given `seed` parameter.
-func LocalRandomNumberGenerator(seed int64) tdigestOption {
+func LocalRandomNumberGenerator(seed int64) tdigestOption { // nolint
 	return RandomNumberGenerator(newLocalRNG(seed))
 }

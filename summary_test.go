@@ -79,7 +79,7 @@ func TestSetAtNeverBreaksSorting(t *testing.T) {
 	s := newSummary(10)
 
 	for _, i := range []float64{10, 10, 10, 10, 10} {
-		s.Add(i, 1)
+		_ = s.Add(i, 1)
 	}
 
 	s.setAt(0, 30, 1)
@@ -129,7 +129,7 @@ func TestFloorSum(t *testing.T) {
 	var total uint32
 	for i := 0; i < 100; i++ {
 		count := uint32(rand.Intn(10) + 1)
-		s.Add(rand.Float64(), count)
+		_ = s.Add(rand.Float64(), count)
 		total += count
 	}
 
@@ -152,7 +152,7 @@ func TestFloorSum(t *testing.T) {
 func TestFloor(t *testing.T) {
 	s := newSummary(200)
 	for i := float64(0); i < 101; i++ {
-		s.Add(i/2.0, 1)
+		_ = s.Add(i/2.0, 1)
 	}
 
 	if s.Floor(-30) != -1 {

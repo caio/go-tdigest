@@ -30,7 +30,7 @@ type TDigest struct {
 	summary     *summary
 	compression float64
 	count       uint64
-	rng         TDigestRNG
+	rng         RNG
 }
 
 // New creates a new digest.
@@ -185,7 +185,10 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 	}
 
 	if closest == t.summary.Len() {
-		t.summary.Add(value, count)
+		err = t.summary.Add(value, count)
+		if err != nil {
+			return err
+		}
 	} else {
 		c := float64(t.summary.Count(closest))
 		newMean := weightedAverage(t.summary.Mean(closest), c, value, float64(count))
@@ -220,7 +223,7 @@ func (t TDigest) Count() uint64 {
 	return t.count
 }
 
-// Add(x) is an alias for AddWeighted(x,1)
+// Add is an alias for AddWeighted(x,1)
 // Read the documentation for AddWeighted for more details.
 func (t *TDigest) Add(value float64) error {
 	return t.AddWeighted(value, 1)
@@ -285,9 +288,8 @@ func (t *TDigest) CDF(value float64) float64 {
 	} else if t.summary.Len() == 1 {
 		if value < t.summary.Mean(0) {
 			return 0
-		} else {
-			return 1
 		}
+		return 1
 	}
 
 	// We have at least 2 centroids
@@ -331,7 +333,7 @@ func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
 	t.summary.ForEach(f)
 }
 
-func shuffle(means []float64, counts []uint32, rng TDigestRNG) {
+func shuffle(means []float64, counts []uint32, rng RNG) {
 	for i := len(means) - 1; i > 1; i-- {
 		j := rng.Intn(i + 1)
 		means[i], means[j], counts[i], counts[j] = means[j], means[i], counts[j], counts[i]

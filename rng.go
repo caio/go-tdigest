@@ -4,7 +4,9 @@ import (
 	"math/rand"
 )
 
-type TDigestRNG interface {
+// RNG is an interface that wraps the needed random number
+// generator calls that tdigest uses during its runtime
+type RNG interface {
 	Float32() float32
 	Intn(int) int
 }

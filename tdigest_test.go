@@ -171,10 +171,10 @@ func TestNonSequentialInsertion(t *testing.T) {
 func TestSingletonInACrowd(t *testing.T) {
 	tdigest := uncheckedNew()
 	for i := 0; i < 10000; i++ {
-		tdigest.Add(10)
+		_ = tdigest.Add(10)
 	}
-	tdigest.Add(20)
-	tdigest.Compress()
+	_ = tdigest.Add(20)
+	_ = tdigest.Compress()
 
 	for _, q := range []float64{0, 0.5, 0.8, 0.9, 0.99, 0.999} {
 		if q == 0.999 {
@@ -199,7 +199,7 @@ func TestRespectBounds(t *testing.T) {
 
 	data := []float64{0, 279, 2, 281}
 	for _, f := range data {
-		tdigest.Add(f)
+		_ = tdigest.Add(f)
 	}
 
 	quantiles := []float64{0.01, 0.25, 0.5, 0.75, 0.999}
@@ -317,14 +317,14 @@ func TestMerge(t *testing.T) {
 
 			data[i] = num
 			_ = dist.Add(num)
-			subs[i%numSubs].Add(num)
+			_ = subs[i%numSubs].Add(num)
 		}
 
-		dist.Compress()
+		_ = dist.Compress()
 
 		dist2 := uncheckedNew()
 		for i := 0; i < numSubs; i++ {
-			dist2.Merge(subs[i])
+			_ = dist2.Merge(subs[i])
 		}
 
 		if dist.Count() != dist2.Count() {
@@ -399,7 +399,7 @@ func TestGammaDistribution(t *testing.T) {
 	data := make([]float64, numItems)
 	for i := 0; i < numItems; i++ {
 		data[i] = gammaRNG.Gamma(0.1, 0.1)
-		digest.Add(data[i])
+		_ = digest.Add(data[i])
 	}
 
 	sort.Float64s(data)
