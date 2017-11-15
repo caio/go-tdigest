@@ -12,7 +12,7 @@ structure in Go.
 
 ## Project Status
 
-This project is activelly maintained. We are happy to collaborate on features
+This project is actively maintained. We are happy to collaborate on features
 and issues if/when they arrive.
 
 ## Installation
