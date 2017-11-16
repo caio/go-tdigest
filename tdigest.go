@@ -100,7 +100,7 @@ func (t *TDigest) Quantile(q float64) float64 {
 				nextIndex2 := total + float64(t.summary.Count(next)) + float64(t.summary.Count(next+1)-1)/2
 				previousMean = (nextIndex2*t.summary.Mean(next) - nextIndex*t.summary.Mean(next+1)) / (nextIndex2 - nextIndex)
 			}
-			// common case: two centroids found, the result in inbetween
+			// common case: two centroids found, the result in in between
 			return _quantile(index, previousIndex, nextIndex, previousMean, t.summary.Mean(next))
 		} else if next+1 == t.summary.Len() {
 			// the index is after the last centroid
