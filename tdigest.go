@@ -8,7 +8,7 @@
 // ElasticSearch), performance metrics for distributed systems, etc.
 //
 // After you create (and configure, if desired) the digest:
-//     digest := tdigest.New(tdigest.Compression(100))
+//     digest, err := tdigest.New(tdigest.Compression(100))
 //
 // You can then use it for registering measurements:
 //     digest.Add(number)

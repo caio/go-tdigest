@@ -65,7 +65,7 @@ at [options.go](options.go). Example:
 ```go
 // Construct a digest with compression=200 and its own
 // (thread-unsafe) RNG seeded with 0xCA10:
-digest := tdigest.New(
+digest, _ := tdigest.New(
         tdigest.Compression(200),
         tdigest.LocalRandomNumberGenerator(0xCA10),
 )
