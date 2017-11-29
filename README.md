@@ -37,22 +37,23 @@ your build because of an API change:
 package main
 
 import (
-        "fmt"
-        "math/rand"
-        "github.com/caio/go-tdigest"
+	"fmt"
+	"math/rand"
+
+	"github.com/caio/go-tdigest"
 )
 
 func main() {
-        // Analogue to tdigest.New(tdigest.Compression(100))
-        var t = tdigest.New()
+	// Analogue to tdigest.New(tdigest.Compression(100))
+	t, _ := tdigest.New()
 
-        for i := 0; i < 10000; i++ {
-                // Analogue to t.AddWeighted(rand.Float64(), 1)
-                t.Add(rand.Float64())
-        }
+	for i := 0; i < 10000; i++ {
+		// Analogue to t.AddWeighted(rand.Float64(), 1)
+		t.Add(rand.Float64())
+	}
 
-        fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
-        fmt.Printf("CDF(Quantile(.5)) = %.6f\n", t.CDF(t.Quantile(0.5)))
+	fmt.Printf("p(.5) = %.6f\n", t.Quantile(0.5))
+	fmt.Printf("CDF(Quantile(.5)) = %.6f\n", t.CDF(t.Quantile(0.5)))
 }
 ```
 
