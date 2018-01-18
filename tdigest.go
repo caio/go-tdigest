@@ -285,7 +285,7 @@ func (t *TDigest) CDF(value float64) float64 {
 	aMean := t.summary.Mean(aIdx)
 	if value < aMean+right {
 		aCount := float64(t.summary.Count(aIdx))
-		return (tot + aCount*interpolate(value, aMean-left, aMean+right)) / 2
+		return (tot + aCount*interpolate(value, aMean-left, aMean+right)) / float64(t.Count())
 	}
 	return 1
 }
