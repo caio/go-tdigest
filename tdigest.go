@@ -280,11 +280,12 @@ func (t *TDigest) CDF(value float64) float64 {
 		right = (t.summary.Mean(i+1) - t.summary.Mean(i)) / 2
 	}
 
-	// last centroid
-	lastMean := t.summary.Mean(t.summary.Len() - 1)
-	if value < lastMean+right {
-		lastCount := float64(t.summary.Count(t.summary.Len() - 1))
-		return (tot + lastCount*interpolate(value, lastMean-left, lastMean+right)) / 2
+	// last centroid, the summary length is at least two
+	aIdx := t.summary.Len() - 2
+	aMean := t.summary.Mean(aIdx)
+	if value < aMean+right {
+		aCount := float64(t.summary.Count(aIdx))
+		return (tot + aCount*interpolate(value, aMean-left, aMean+right)) / 2
 	}
 	return 1
 }

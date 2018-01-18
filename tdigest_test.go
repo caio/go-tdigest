@@ -431,6 +431,13 @@ func TestGammaDistribution(t *testing.T) {
 	if softErrors >= 3 {
 		t.Errorf("Too many soft errors")
 	}
+
+	// Issue #17, verify that we are hitting the extreme CDF case
+	// XXX Maybe test this properly instead of having a hardcoded value
+	extreme := digest.CDF(0.71875)
+	if !closeEnough(extreme, 1) {
+		t.Errorf("Expected something close to 1 but got %.4f instead", extreme)
+	}
 }
 
 func shouldPanic(f func(), t *testing.T, message string) {
