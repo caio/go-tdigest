@@ -41,7 +41,7 @@ func checkSorted(s *summary, t *testing.T) {
 
 func TestCore(t *testing.T) {
 
-	testData := make(map[float64]uint32)
+	testData := make(map[float64]uint64)
 
 	const maxDataSize = 10000
 	s := newSummary(maxDataSize)
@@ -53,7 +53,7 @@ func TestCore(t *testing.T) {
 
 	for i := 0; i < maxDataSize; i++ {
 		k := rand.Float64()
-		v := rand.Uint32()
+		v := rand.Uint64()
 
 		err := s.Add(k, v)
 
@@ -82,7 +82,7 @@ func TestCore(t *testing.T) {
 }
 
 func TestGetAt(t *testing.T) {
-	data := make(map[int]uint32)
+	data := make(map[int]uint64)
 	const maxDataSize = 1000
 
 	s := newSummary(maxDataSize)
@@ -94,7 +94,7 @@ func TestGetAt(t *testing.T) {
 	}
 
 	for i := 0; i < maxDataSize; i++ {
-		data[i] = rand.Uint32()
+		data[i] = rand.Uint64()
 		s.Add(float64(i), data[i])
 	}
 
@@ -121,7 +121,7 @@ func TestGetAt(t *testing.T) {
 func TestIterate(t *testing.T) {
 
 	s := newSummary(10)
-	for _, i := range []uint32{1, 2, 3, 4, 5, 6} {
+	for _, i := range []uint64{1, 2, 3, 4, 5, 6} {
 		s.Add(float64(i), i*10)
 	}
 
@@ -135,7 +135,7 @@ func TestIterate(t *testing.T) {
 		t.Errorf("Iterate must exit early if the closure returns false")
 	}
 
-	var tot uint32
+	var tot uint64
 	s.Iterate(func(i centroid) bool {
 		tot += i.count
 		return true
@@ -217,7 +217,7 @@ func TestCeilingAndFloor(t *testing.T) {
 func TestAdjustLeftRight(t *testing.T) {
 
 	keys := []float64{1, 2, 3, 4, 9, 5, 6, 7, 8}
-	counts := []uint32{1, 2, 3, 4, 9, 5, 6, 7, 8}
+	counts := []uint64{1, 2, 3, 4, 9, 5, 6, 7, 8}
 
 	s := summary{keys: keys, counts: counts}
 
@@ -228,7 +228,7 @@ func TestAdjustLeftRight(t *testing.T) {
 	}
 
 	keys = []float64{1, 2, 3, 4, 0, 5, 6, 7, 8}
-	counts = []uint32{1, 2, 3, 4, 0, 5, 6, 7, 8}
+	counts = []uint64{1, 2, 3, 4, 0, 5, 6, 7, 8}
 
 	s = summary{keys: keys, counts: counts}
 	s.adjustLeft(4)

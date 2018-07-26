@@ -8,7 +8,7 @@ import (
 
 type centroid struct {
 	mean  float64
-	count uint32
+	count uint64
 	index int
 }
 
@@ -16,7 +16,7 @@ func (c centroid) isValid() bool {
 	return !math.IsNaN(c.mean) && c.count > 0
 }
 
-func (c *centroid) Update(x float64, weight uint32) {
+func (c *centroid) Update(x float64, weight uint64) {
 	c.count += weight
 	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
 }
@@ -25,13 +25,13 @@ var invalidCentroid = centroid{mean: math.NaN(), count: 0}
 
 type summary struct {
 	keys   []float64
-	counts []uint32
+	counts []uint64
 }
 
 func newSummary(initialCapacity uint) *summary {
 	return &summary{
 		keys:   make([]float64, 0, initialCapacity),
-		counts: make([]uint32, 0, initialCapacity),
+		counts: make([]uint64, 0, initialCapacity),
 	}
 }
 
@@ -39,7 +39,7 @@ func (s summary) Len() int {
 	return len(s.keys)
 }
 
-func (s *summary) Add(key float64, value uint32) error {
+func (s *summary) Add(key float64, value uint64) error {
 
 	if math.IsNaN(key) {
 		return fmt.Errorf("Key must not be NaN")
@@ -156,8 +156,8 @@ func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
 	return item, s.At(idx - 1)
 }
 
-func (s summary) sumUntilMean(mean float64) uint32 {
-	var cumSum uint32
+func (s summary) sumUntilMean(mean float64) uint64 {
+	var cumSum uint64
 	for i := range s.keys {
 		if s.keys[i] < mean {
 			cumSum += s.counts[i]
@@ -168,7 +168,7 @@ func (s summary) sumUntilMean(mean float64) uint32 {
 	return cumSum
 }
 
-func (s *summary) updateAt(index int, mean float64, count uint32) {
+func (s *summary) updateAt(index int, mean float64, count uint64) {
 	c := centroid{s.keys[index], s.counts[index], index}
 	c.Update(mean, count)
 

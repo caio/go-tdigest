@@ -17,7 +17,7 @@ import (
 type TDigest struct {
 	summary     *summary
 	compression float64
-	count       uint32
+	count       uint64
 }
 
 // New creates a new digest.
@@ -93,7 +93,7 @@ func (t *TDigest) Quantile(q float64) float64 {
 // method to be used for collecting samples. The count parameter is for
 // when you are registering a sample that occurred multiple times - the
 // most common value for this is 1.
-func (t *TDigest) Add(value float64, count uint32) error {
+func (t *TDigest) Add(value float64, count uint64) error {
 
 	if count == 0 {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
@@ -126,7 +126,7 @@ func (t *TDigest) Add(value float64, count uint32) error {
 			continue
 		}
 
-		t.summary.updateAt(chosen.index, value, uint32(count))
+		t.summary.updateAt(chosen.index, value, uint64(count))
 		t.count += count
 		count = 0
 	}
@@ -189,7 +189,7 @@ func (t *TDigest) Len() int { return t.summary.Len() }
 // ForEachCentroid calls the specified function for each centroid.
 // Iteration stops when the supplied function returns false, or when all
 // centroids have been iterated.
-func (t *TDigest) ForEachCentroid(f func(mean float64, count uint32) bool) {
+func (t *TDigest) ForEachCentroid(f func(mean float64, count uint64) bool) {
 	s := t.summary
 	for i := 0; i < s.Len(); i++ {
 		if !f(s.keys[i], s.counts[i]) {

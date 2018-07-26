@@ -204,7 +204,7 @@ func TestWeights(t *testing.T) {
 	// Create data slice with repeats matching weights we gave to tdigest
 	data := []float64{}
 	for i := 0; i < 100; i++ {
-		tdigest.Add(float64(i), uint32(i))
+		tdigest.Add(float64(i), uint64(i))
 
 		for j := 0; j < i; j++ {
 			data = append(data, float64(i))
@@ -243,7 +243,7 @@ func TestIntegers(t *testing.T) {
 		t.Errorf("Expected p(0.5) = 2, Got %.2f instead", tdigest.Quantile(0.5))
 	}
 
-	var tot uint32
+	var tot uint64
 	tdigest.summary.Iterate(func(item centroid) bool {
 		tot += item.count
 		return true
@@ -377,7 +377,7 @@ func TestForEachCentroid(t *testing.T) {
 
 	// Iterate limited number.
 	means := []float64{}
-	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+	tdigest.ForEachCentroid(func(mean float64, count uint64) bool {
 		means = append(means, mean)
 		if len(means) == 3 {
 			return false
@@ -390,13 +390,24 @@ func TestForEachCentroid(t *testing.T) {
 
 	// Iterate all datapoints.
 	means = []float64{}
-	tdigest.ForEachCentroid(func(mean float64, count uint32) bool {
+	tdigest.ForEachCentroid(func(mean float64, count uint64) bool {
 		means = append(means, mean)
 		return true
 	})
 	if len(means) != tdigest.Len() {
 		t.Errorf("ForEachCentroid did not handle all data")
 	}
+}
+
+func TestQuantilesDontOverflow(t *testing.T) {
+	tdigest := New(100)
+	// Add slightly more than math.MaxUint32 samples uniformly in the range
+	// [0, 1). This would overflow a uint32-based implementation.
+	tdigest.Add(1, 1)
+	for i := 0; i < 1024; i++ {
+		tdigest.Add(float64(i)/1024, 4194304)
+	}
+	assertDifferenceSmallerThan(tdigest, 0.5, .02, t)
 }
 
 func benchmarkAdd(compression float64, b *testing.B) {
