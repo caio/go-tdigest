@@ -117,10 +117,7 @@ func (t *TDigest) Quantile(q float64) float64 {
 }
 
 func weightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) float64 {
-	if x1 > x2 {
-		x1, x2, w1, w2 = x2, x1, w2, w1
-	}
-	return x1*w1/(w1+w2) + x2*w2/(w1+w2)
+	return (x1*w1 + x2*w2)/(w1+w2)
 }
 
 // AddWeighted registers a new sample in the digest.
