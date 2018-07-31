@@ -125,7 +125,7 @@ func boundedWeightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) floa
 	if x1 > x2 {
 		x1, x2, w1, w2 = x2, x1, w2, w1
 	}
-	result := x1*w1/(w1+w2) + x2*w2/(w1+w2)
+	result := (x1*w1 + x2*w2) / (w1 + w2)
 	return math.Max(x1, math.Min(result, x2))
 }
 
