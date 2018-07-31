@@ -116,11 +116,17 @@ func (t *TDigest) Quantile(q float64) float64 {
 	// unreachable
 }
 
-func weightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) float64 {
+// boundedWeightedAverage computes the weighted average of two
+// centroids guaranteeing that the result will be between x1 and x2,
+// inclusive.
+//
+// Refer to https://github.com/caio/go-tdigest/pull/19 for more details
+func boundedWeightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) float64 {
 	if x1 > x2 {
 		x1, x2, w1, w2 = x2, x1, w2, w1
 	}
-	return x1*w1/(w1+w2) + x2*w2/(w1+w2)
+	result := x1*w1/(w1+w2) + x2*w2/(w1+w2)
+	return math.Max(x1, math.Min(result, x2))
 }
 
 // AddWeighted registers a new sample in the digest.
@@ -159,7 +165,7 @@ func (t *TDigest) AddWeighted(value float64, count uint32) (err error) {
 		}
 	} else {
 		c := float64(t.summary.Count(closest))
-		newMean := weightedAverage(t.summary.Mean(closest), c, value, float64(count))
+		newMean := boundedWeightedAverage(t.summary.Mean(closest), c, value, float64(count))
 		t.summary.setAt(closest, newMean, uint32(c)+count)
 	}
 	t.count += uint64(count)
