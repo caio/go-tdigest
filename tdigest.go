@@ -154,14 +154,12 @@ func (t *TDigest) Compress() {
 	}
 
 	oldTree := t.summary
+	oldTree.shuffle()
 	t.summary = newSummary(estimateCapacity(t.compression))
 	t.count = 0
 
-	nodes := oldTree.Data()
-	shuffle(nodes)
-
-	for _, item := range nodes {
-		t.Add(item.mean, item.count)
+	for i := range oldTree.keys {
+		t.Add(oldTree.keys[i], oldTree.counts[i])
 	}
 }
 
@@ -171,15 +169,21 @@ func (t *TDigest) Compress() {
 // samples. This is particularly important on a scatter-gather/map-reduce
 // scenario.
 func (t *TDigest) Merge(other *TDigest) {
+	t.MergeDestructive(other)
+
+	other.summary.unshuffle()
+}
+
+// As Merge, above, but leaves other in a scrambled state
+func (t *TDigest) MergeDestructive(other *TDigest) {
 	if other.summary.Len() == 0 {
 		return
 	}
 
-	nodes := other.summary.Data()
-	shuffle(nodes)
+	other.summary.shuffle()
 
-	for _, item := range nodes {
-		t.Add(item.mean, item.count)
+	for i := range other.summary.keys {
+		t.Add(other.summary.keys[i], other.summary.counts[i])
 	}
 }
 
@@ -195,15 +199,6 @@ func (t *TDigest) ForEachCentroid(f func(mean float64, count uint64) bool) {
 		if !f(s.keys[i], s.counts[i]) {
 			break
 		}
-	}
-}
-
-func shuffle(data []centroid) {
-	for i := len(data) - 1; i > 1; i-- {
-		other := rand.Intn(i + 1)
-		tmp := data[other]
-		data[other] = data[i]
-		data[i] = tmp
 	}
 }
 

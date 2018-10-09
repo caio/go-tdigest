@@ -3,6 +3,7 @@ package tdigest
 import (
 	"math"
 	"math/rand"
+	"reflect"
 	"sort"
 	"testing"
 )
@@ -294,9 +295,21 @@ func TestMerge(t *testing.T) {
 		}
 	}
 
+	subzeroSummary := &summary{
+		keys:   make([]float64, len(subs[0].summary.keys)),
+		counts: make([]uint64, len(subs[0].summary.counts)),
+	}
+	copy(subzeroSummary.keys, subs[0].summary.keys)
+	copy(subzeroSummary.counts, subs[0].summary.counts)
+
 	dist2 := New(10)
 	for i := 0; i < numSubs; i++ {
 		dist2.Merge(subs[i])
+	}
+
+	// Make sure merge didn't scramble the summaries
+	if !reflect.DeepEqual(subs[0].summary, subzeroSummary) {
+		t.Error("summary changed by being merged")
 	}
 
 	// Merge empty. Should be no-op
@@ -438,4 +451,51 @@ func BenchmarkAdd10(b *testing.B) {
 
 func BenchmarkAdd100(b *testing.B) {
 	benchmarkAdd(100, b)
+}
+
+// Pathological ordered-input case.
+func BenchmarkAddOrdered(b *testing.B) {
+	t := New(100)
+
+	for n := 0; n < b.N; n++ {
+		err := t.Add(float64(n), 1)
+		if err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkMerge(b *testing.B) {
+	b.ReportAllocs()
+
+	t := New(100)
+	for n := 0; n < 1000; n++ {
+		t.Add(rand.Float64(), uint64(rand.Intn(100)))
+	}
+
+	dest := New(100)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		dest.Merge(t)
+	}
+}
+
+func BenchmarkMergeDestructive(b *testing.B) {
+	b.ReportAllocs()
+
+	t := New(100)
+	for n := 0; n < 1000; n++ {
+		t.Add(rand.Float64(), uint64(rand.Intn(100)))
+	}
+
+	dest := New(100)
+
+	b.ResetTimer()
+
+	// After the first iteration, t's summary is scrambled, which means it's
+	// mostly useless, but we can still merge it.
+	for n := 0; n < b.N; n++ {
+		dest.MergeDestructive(t)
+	}
 }

@@ -3,6 +3,7 @@ package tdigest
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"sort"
 )
 
@@ -79,9 +80,8 @@ func (s summary) Find(x float64) centroid {
 }
 
 func (s summary) FindIndex(x float64) int {
-	// FIXME When is linear scan better than binsearch()?
-	//       should I even bother?
-	if len(s.keys) < 30 {
+	// Binary search is only worthwhile if we have a lot of keys.
+	if len(s.keys) < 250 {
 		for i, item := range s.keys {
 			if item >= x {
 				return i
@@ -90,9 +90,7 @@ func (s summary) FindIndex(x float64) int {
 		return len(s.keys)
 	}
 
-	return sort.Search(len(s.keys), func(i int) bool {
-		return s.keys[i] >= x
-	})
+	return sort.SearchFloat64s(s.keys, x)
 }
 
 func (s summary) At(index int) centroid {
@@ -117,15 +115,6 @@ func (s summary) Min() centroid {
 
 func (s summary) Max() centroid {
 	return s.At(s.Len() - 1)
-}
-
-func (s summary) Data() []centroid {
-	data := make([]centroid, 0, s.Len())
-	s.Iterate(func(c centroid) bool {
-		data = append(data, c)
-		return true
-	})
-	return data
 }
 
 func (s summary) successorAndPredecessorItems(mean float64) (centroid, centroid) {
@@ -199,4 +188,27 @@ func (s *summary) adjustLeft(index int) {
 
 func (s summary) meanAtIndexIs(index int, mean float64) bool {
 	return index < len(s.keys) && s.keys[index] == mean
+}
+
+// Randomly shuffles summary contents, so they can be added to another summary
+// with being pathological. Renders summary invalid.
+func (s *summary) shuffle() {
+	for i := len(s.keys) - 1; i > 1; i-- {
+		s.Swap(i, rand.Intn(i+1))
+	}
+}
+
+// Re-sorts summary, repairing the damage done by shuffle().
+func (s *summary) unshuffle() {
+	sort.Sort(s)
+}
+
+// for sort.Interface
+func (s *summary) Swap(i, j int) {
+	s.keys[i], s.keys[j] = s.keys[j], s.keys[i]
+	s.counts[i], s.counts[j] = s.counts[j], s.counts[i]
+}
+
+func (s *summary) Less(i, j int) bool {
+	return s.keys[i] < s.keys[j]
 }
