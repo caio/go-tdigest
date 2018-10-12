@@ -211,7 +211,7 @@ func (t *TDigest) threshold(q float64) float64 {
 }
 
 func (t *TDigest) computeCentroidQuantile(c *centroid) float64 {
-	cumSum := t.summary.sumUntilMean(c.mean)
+	cumSum := t.summary.sumUntilIndex(c.index)
 	return (float64(c.count)/2.0 + float64(cumSum)) / float64(t.count)
 }
 

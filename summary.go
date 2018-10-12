@@ -145,15 +145,22 @@ func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
 	return item, s.At(idx - 1)
 }
 
-func (s summary) sumUntilMean(mean float64) uint64 {
+// This method is the hotspot when calling Add(), which in turn is called by
+// Compress() and Merge(). A simple loop unroll saves a surprising amount of
+// time.
+func (s summary) sumUntilIndex(idx int) uint64 {
 	var cumSum uint64
-	for i := range s.keys {
-		if s.keys[i] < mean {
-			cumSum += s.counts[i]
-		} else {
-			break
-		}
+	var i int
+	for i = idx - 1; i >= 3; i -= 4 {
+		cumSum += s.counts[i]
+		cumSum += s.counts[i-1]
+		cumSum += s.counts[i-2]
+		cumSum += s.counts[i-3]
 	}
+	for ; i >= 0; i-- {
+		cumSum += s.counts[i]
+	}
+
 	return cumSum
 }
 
