@@ -350,6 +350,54 @@ func (t TDigest) chooseMergeCandidate(begin, end int, value float64, count uint3
 	return closest
 }
 
+// TrimmedMean returns the mean of the distribution between the two percentiles
+// p1 and p2.
+func (t *TDigest) TrimmedMean(p1, p2 float64) float64 {
+	if p1 < 0 || p1 > 1 {
+		panic("p1 must be between 0 and 1 (inclusive)")
+	}
+	if p2 < 0 || p2 > 1 {
+		panic("p2 must be between 0 and 1 (inclusive)")
+	}
+	if p1 >= p2 {
+		panic("p1 must be lower than p2")
+	}
+
+	minCount := p1 * float64(t.count)
+	maxCount := p2 * float64(t.count)
+
+	var trimmedSum, trimmedCount, currCount float64
+	for i, mean := range t.summary.means {
+		count := float64(t.summary.counts[i])
+
+		nextCount := currCount + count
+		if nextCount <= minCount {
+			currCount = nextCount
+			continue
+		}
+
+		if currCount < minCount {
+			count = nextCount - minCount
+		}
+		if nextCount > maxCount {
+			count -= nextCount - maxCount
+		}
+
+		trimmedSum += count * mean
+		trimmedCount += count
+
+		if nextCount >= maxCount {
+			break
+		}
+		currCount = nextCount
+	}
+
+	if trimmedCount == 0 {
+		return 0
+	}
+	return trimmedSum / trimmedCount
+}
+
 func shuffle(means []float64, counts []uint32, rng RNG) {
 	for i := len(means) - 1; i > 1; i-- {
 		j := rng.Intn(i + 1)
