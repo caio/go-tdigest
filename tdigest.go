@@ -350,8 +350,11 @@ func (t TDigest) chooseMergeCandidate(begin, end int, value float64, count uint3
 	return closest
 }
 
-// TrimmedMean returns the mean of the distribution between the two percentiles
-// p1 and p2.
+// TrimmedMean returns the mean of the distribution between the two
+// percentiles p1 and p2.
+//
+// Values of p1 and p2 must be beetween 0 and 1 (inclusive) and p1
+// must be less than p2. Will panic otherwise.
 func (t *TDigest) TrimmedMean(p1, p2 float64) float64 {
 	if p1 < 0 || p1 > 1 {
 		panic("p1 must be between 0 and 1 (inclusive)")
