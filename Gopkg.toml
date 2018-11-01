@@ -19,7 +19,3 @@
 # [[override]]
 #  name = "github.com/x/y"
 #  version = "2.4.0"
-
-[[constraint]]
-  version = "1.2.0"
-  name = "github.com/yourbasic/fenwick"

@@ -5,7 +5,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/yourbasic/fenwick"
+	"github.com/caio/go-tdigest/internal/fenwick"
 )
 
 type summary struct {
@@ -51,7 +51,7 @@ func (s *summary) Add(key float64, value uint32) error {
 	// Reinitialize the prefixSum cache
 	if s.bitree.Len() >= len(s.counts) {
 		for i := idx; i < len(s.counts); i++ {
-			s.bitree.Set(i, int64(s.counts[i]))
+			s.bitree.Set(i, s.counts[i])
 		}
 	} else {
 		s.rebuildFenwickTree()
@@ -61,11 +61,7 @@ func (s *summary) Add(key float64, value uint32) error {
 }
 
 func (s *summary) rebuildFenwickTree() {
-	x := make([]int64, cap(s.counts))
-	for i := 0; i < s.Len(); i++ {
-		x[i] = int64(s.counts[i])
-	}
-	s.bitree = fenwick.New(x...)
+	s.bitree = fenwick.New(s.counts[:cap(s.counts)]...)
 }
 
 func (s summary) Floor(x float64) int {
@@ -129,7 +125,7 @@ func (s *summary) setAt(index int, mean float64, count uint32) {
 	s.counts[index] = count
 	s.adjustRight(index)
 	s.adjustLeft(index)
-	s.bitree.Set(index, int64(count))
+	s.bitree.Set(index, count)
 }
 
 func (s *summary) adjustRight(index int) {
