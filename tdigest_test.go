@@ -1,6 +1,7 @@
 package tdigest
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -605,7 +606,7 @@ func trimmedMean(ff []float64, p1, p2 float64) float64 {
 	return sum / float64(count)
 }
 
-func benchmarkAdd(compression uint32, b *testing.B) {
+func benchmarkAddCompression(compression uint32, b *testing.B) {
 	t := uncheckedNew(Compression(compression))
 
 	data := make([]float64, b.N)
@@ -624,14 +625,43 @@ func benchmarkAdd(compression uint32, b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkAdd1(b *testing.B) {
-	benchmarkAdd(1, b)
+func BenchmarkAddCompression1(b *testing.B) {
+	benchmarkAddCompression(1, b)
 }
 
-func BenchmarkAdd10(b *testing.B) {
-	benchmarkAdd(10, b)
+func BenchmarkAddCompression10(b *testing.B) {
+	benchmarkAddCompression(10, b)
 }
 
-func BenchmarkAdd100(b *testing.B) {
-	benchmarkAdd(100, b)
+func BenchmarkAddCompression100(b *testing.B) {
+	benchmarkAddCompression(100, b)
+}
+
+func benchmarkAddMultipleTimes(b *testing.B, times int) {
+	data := make([]float64, times)
+	for i := 0; i < times; i++ {
+		data[i] = rand.Float64()
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		t := uncheckedNew()
+		for i := 0; i < times; i++ {
+			err := t.AddWeighted(data[i], 1)
+			if err != nil {
+				b.Error(err)
+			}
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkAddMultipleTimes(b *testing.B) {
+	for _, n := range []int{10, 100, 1000, 10000} {
+		n := n
+		b.Run(fmt.Sprint(n), func(b *testing.B) {
+			benchmarkAddMultipleTimes(b, n)
+		})
+	}
 }
