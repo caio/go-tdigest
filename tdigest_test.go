@@ -616,7 +616,7 @@ func TestClone(t *testing.T) {
 		}
 	}
 
-	td := uncheckedNew()
+	td, _ := New(Compression(42))
 	seed(td)
 	clone := td.Clone()
 
