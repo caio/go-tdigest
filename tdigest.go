@@ -64,6 +64,11 @@ func _quantile(index float64, previousIndex float64, nextIndex float64, previous
 	return previousMean*previousWeight + nextMean*nextWeight
 }
 
+// Compression returns the TDigest compression.
+func (t *TDigest) Compression() float64 {
+	return t.compression
+}
+
 // Quantile returns the desired percentile estimation.
 //
 // Values of p must be between 0 and 1 (inclusive), will panic otherwise.
@@ -294,6 +299,18 @@ func (t *TDigest) CDF(value float64) float64 {
 		return (tot + aCount*interpolate(value, aMean-left, aMean+right)) / float64(t.Count())
 	}
 	return 1
+}
+
+// Clone returns a deep copy of a TDigest.
+func (t *TDigest) Clone() *TDigest {
+	summary := t.summary.Clone()
+	summary.rebuildFenwickTree()
+	return &TDigest{
+		summary:     summary,
+		compression: t.compression,
+		count:       t.count,
+		rng:         t.rng,
+	}
 }
 
 func interpolate(x, x0, x1 float64) float64 {

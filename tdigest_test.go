@@ -606,6 +606,59 @@ func trimmedMean(ff []float64, p1, p2 float64) float64 {
 	return sum / float64(count)
 }
 
+func TestClone(t *testing.T) {
+	seed := func(td *TDigest) {
+		for i := 0; i < 100; i++ {
+			err := td.Add(rand.Float64())
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	td := uncheckedNew()
+	seed(td)
+	clone := td.Clone()
+
+	// Clone behaves like td.
+
+	if clone.Compression() != td.Compression() {
+		t.Fatalf("got %f, wanted %f", clone.Compression(), td.Compression())
+	}
+
+	cloneCount := clone.Count()
+	if cloneCount != td.Count() {
+		t.Fatalf("got %d, wanted %d", cloneCount, td.Count())
+	}
+
+	cloneQuantile := clone.Quantile(1)
+	if cloneQuantile != td.Quantile(1) {
+		t.Fatalf("got %f, wanted %f", cloneQuantile, td.Quantile(1))
+	}
+
+	seed(td)
+	if td.Count() == clone.Count() {
+		t.Fatal("seed does not work")
+	}
+
+	// Clone is not changed after td is changed.
+
+	if clone.Count() != cloneCount {
+		t.Fatalf("got %d, wanted %d", clone.Count(), cloneCount)
+	}
+
+	if clone.Quantile(1) != cloneQuantile {
+		t.Fatalf("got %f, wanted %f", clone.Quantile(1), cloneQuantile)
+	}
+
+	// Clone is fully functional.
+
+	err := clone.Add(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func benchmarkAddCompression(compression uint32, b *testing.B) {
 	t := uncheckedNew(Compression(compression))
 
