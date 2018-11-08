@@ -225,15 +225,13 @@ func (t *TDigest) Compress() (err error) {
 	}
 
 	oldTree := t.summary
-	t.summary = newSummary(t.summary.Len())
+	t.summary = newSummary(estimateCapacity(t.compression))
 	t.count = 0
 
-	shuffle(oldTree.means, oldTree.counts, t.rng)
-	oldTree.ForEach(func(mean float64, count uint32) bool {
+	oldTree.Perm(t.rng, func(mean float64, count uint32) bool {
 		err = t.AddWeighted(mean, count)
 		return err == nil
 	})
-
 	return err
 }
 
@@ -248,11 +246,7 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 		return nil
 	}
 
-	// We must keep the other digest intact
-	data := other.summary.Clone()
-	shuffle(data.means, data.counts, t.rng)
-
-	data.ForEach(func(mean float64, count uint32) bool {
+	other.summary.Perm(t.rng, func(mean float64, count uint32) bool {
 		err = t.AddWeighted(mean, count)
 		return err == nil
 	})
@@ -414,13 +408,6 @@ func (t *TDigest) TrimmedMean(p1, p2 float64) float64 {
 		return 0
 	}
 	return trimmedSum / trimmedCount
-}
-
-func shuffle(means []float64, counts []uint32, rng RNG) {
-	for i := len(means) - 1; i > 1; i-- {
-		j := rng.Intn(i + 1)
-		means[i], means[j], counts[i], counts[j] = means[j], means[i], counts[j], counts[i]
-	}
 }
 
 func estimateCapacity(compression float64) int {
