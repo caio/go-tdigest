@@ -9,17 +9,19 @@ import (
 )
 
 type summary struct {
-	means  []float64
-	counts []uint32
-	bitree *fenwick.List
+	initialCapacity int
+	means           []float64
+	counts          []uint32
+	bitree          *fenwick.List
 }
 
-func newSummary(initialCapacity uint) *summary {
+func newSummary(initialCapacity int) *summary {
 	s := &summary{
-		means:  make([]float64, 0, initialCapacity),
-		counts: make([]uint32, 0, initialCapacity),
+		initialCapacity: initialCapacity,
+		means:           make([]float64, 0, initialCapacity),
+		counts:          make([]uint32, 0, initialCapacity),
 	}
-	s.rebuildFenwickTree()
+	s.rebuildFenwickTree(-1)
 	return s
 }
 
@@ -48,20 +50,28 @@ func (s *summary) Add(key float64, value uint32) error {
 	s.means[idx] = key
 	s.counts[idx] = value
 
-	// Reinitialize the prefixSum cache
-	if s.bitree.Len() >= len(s.counts) {
-		for i := idx; i < len(s.counts); i++ {
-			s.bitree.Set(i, s.counts[i])
-		}
-	} else {
-		s.rebuildFenwickTree()
-	}
+	s.rebuildFenwickTree(idx)
 
 	return nil
 }
 
-func (s *summary) rebuildFenwickTree() {
-	s.bitree = fenwick.New(s.counts[:cap(s.counts)]...)
+func (s *summary) rebuildFenwickTree(idx int) {
+	if !s.useFenwickTree() {
+		return
+	}
+
+	if s.bitree == nil || s.bitree.Len() < len(s.counts) {
+		s.bitree = fenwick.New(s.counts[:cap(s.counts)]...)
+		return
+	}
+
+	for i := idx; i < len(s.counts); i++ {
+		s.bitree.Set(i, s.counts[i])
+	}
+}
+
+func (s *summary) useFenwickTree() bool {
+	return s.initialCapacity > 100 && len(s.counts) >= s.initialCapacity
 }
 
 func (s summary) Floor(x float64) int {
@@ -77,8 +87,13 @@ func (s summary) FindInsertionIndex(x float64) int {
 	})
 }
 
-func (s summary) HeadSum(index int) (sum float64) {
-	return float64(s.bitree.Sum(index))
+// This method is the hotspot when calling Add(), which in turn is called by
+// Compress() and Merge().
+func (s summary) HeadSum(idx int) (sum float64) {
+	if s.bitree != nil {
+		return float64(s.bitree.Sum(idx))
+	}
+	return float64(sumUntilIndex(s.counts, idx))
 }
 
 func (s summary) FindIndex(x float64) int {
@@ -125,7 +140,9 @@ func (s *summary) setAt(index int, mean float64, count uint32) {
 	s.counts[index] = count
 	s.adjustRight(index)
 	s.adjustLeft(index)
-	s.bitree.Set(index, count)
+	if s.bitree != nil {
+		s.bitree.Set(index, count)
+	}
 }
 
 func (s *summary) adjustRight(index int) {
@@ -155,4 +172,20 @@ func (s summary) Clone() *summary {
 		means:  append([]float64{}, s.means...),
 		counts: append([]uint32{}, s.counts...),
 	}
+}
+
+// A simple loop unroll saves a surprising amount of time.
+func sumUntilIndex(s []uint32, idx int) uint64 {
+	var cumSum uint64
+	var i int
+	for i = idx - 1; i >= 3; i -= 4 {
+		cumSum += uint64(s[i])
+		cumSum += uint64(s[i-1])
+		cumSum += uint64(s[i-2])
+		cumSum += uint64(s[i-3])
+	}
+	for ; i >= 0; i-- {
+		cumSum += uint64(s[i])
+	}
+	return cumSum
 }

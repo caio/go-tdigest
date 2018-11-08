@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/caio/go-tdigest/internal/fenwick"
 	"github.com/leesper/go_rng"
 	"gonum.org/v1/gonum/stat"
 )
@@ -503,7 +504,7 @@ func TestCDFInsideLastCentroid(t *testing.T) {
 		count:       1250,
 		rng:         &globalRNG{},
 	}
-	td.summary.rebuildFenwickTree()
+	td.summary.rebuildFenwickTree(-1)
 
 	if cdf := td.CDF(7.144560976650238e+06); cdf > 1 {
 		t.Fatalf("invalid: %v", cdf)
@@ -659,7 +660,18 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func benchmarkAddCompression(compression uint32, b *testing.B) {
+var compressions = []uint32{1, 10, 20, 30, 50, 100}
+
+func BenchmarkTDigestAddOnce(b *testing.B) {
+	for _, compression := range compressions {
+		compression := compression
+		b.Run(fmt.Sprintf("compression=%d", compression), func(b *testing.B) {
+			benchmarkAddOnce(b, compression)
+		})
+	}
+}
+
+func benchmarkAddOnce(b *testing.B, compression uint32) {
 	t := uncheckedNew(Compression(compression))
 
 	data := make([]float64, b.N)
@@ -670,7 +682,7 @@ func benchmarkAddCompression(compression uint32, b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		err := t.AddWeighted(data[n], 1)
+		err := t.Add(data[n])
 		if err != nil {
 			b.Error(err)
 		}
@@ -678,19 +690,20 @@ func benchmarkAddCompression(compression uint32, b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkAddCompression1(b *testing.B) {
-	benchmarkAddCompression(1, b)
+func BenchmarkTDigestAddMulti(b *testing.B) {
+	for _, compression := range compressions {
+		compression := compression
+		for _, n := range []int{10, 100, 1000, 10000} {
+			n := n
+			name := fmt.Sprintf("compression=%d n=%d", compression, n)
+			b.Run(name, func(b *testing.B) {
+				benchmarkAddMulti(b, compression, n)
+			})
+		}
+	}
 }
 
-func BenchmarkAddCompression10(b *testing.B) {
-	benchmarkAddCompression(10, b)
-}
-
-func BenchmarkAddCompression100(b *testing.B) {
-	benchmarkAddCompression(100, b)
-}
-
-func benchmarkAddMultipleTimes(b *testing.B, times int) {
+func benchmarkAddMulti(b *testing.B, compression uint32, times int) {
 	data := make([]float64, times)
 	for i := 0; i < times; i++ {
 		data[i] = rand.Float64()
@@ -699,7 +712,7 @@ func benchmarkAddMultipleTimes(b *testing.B, times int) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		t := uncheckedNew()
+		t := uncheckedNew(Compression(compression))
 		for i := 0; i < times; i++ {
 			err := t.AddWeighted(data[i], 1)
 			if err != nil {
@@ -710,11 +723,146 @@ func benchmarkAddMultipleTimes(b *testing.B, times int) {
 	b.StopTimer()
 }
 
-func BenchmarkAddMultipleTimes(b *testing.B) {
-	for _, n := range []int{10, 100, 1000, 10000} {
-		n := n
-		b.Run(fmt.Sprint(n), func(b *testing.B) {
-			benchmarkAddMultipleTimes(b, n)
+func BenchmarkTDigestMerge(b *testing.B) {
+	for _, compression := range compressions {
+		compression := compression
+		for _, n := range []int{1, 10, 100} {
+			name := fmt.Sprintf("compression=%d n=%d", compression, n)
+			b.Run(name, func(b *testing.B) {
+				benchmarkMerge(b, compression, n)
+			})
+		}
+	}
+}
+
+func benchmarkMerge(b *testing.B, compression uint32, times int) {
+	ts := make([]*TDigest, times)
+	for i := 0; i < times; i++ {
+		ts[i] = randomTDigest(compression)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		dst := uncheckedNew(Compression(compression))
+
+		for i := 0; i < times; i++ {
+			err := dst.Merge(ts[i])
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+
+		err := dst.Compress()
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func randomTDigest(compression uint32) *TDigest {
+	t := uncheckedNew(Compression(compression))
+	n := 20 * int(compression)
+	for i := 0; i < n; i++ {
+		err := t.Add(rand.Float64())
+		if err != nil {
+			panic(err)
+		}
+	}
+	return t
+}
+
+var sumSizes = []int{10, 100, 1000, 10000}
+
+func BenchmarkSumFenwickTree(b *testing.B) {
+	for _, size := range sumSizes {
+		size := size
+		b.Run(fmt.Sprint(size), func(b *testing.B) {
+			benchmarkSumFenwickTree(b, size)
 		})
 	}
+}
+
+func benchmarkSumFenwickTree(b *testing.B, size int) {
+	counts := generateCounts(size)
+	indexes := generateIndexes(size)
+	tree := fenwick.New(counts...)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, idx := range indexes {
+			_ = tree.Sum(idx)
+		}
+	}
+}
+
+func BenchmarkSumLoopSimple(b *testing.B) {
+	for _, size := range sumSizes {
+		size := size
+		b.Run(fmt.Sprint(size), func(b *testing.B) {
+			benchmarkSumLoopSimple(b, size)
+		})
+	}
+}
+
+func benchmarkSumLoopSimple(b *testing.B, size int) {
+	counts := generateCounts(size)
+	indexes := generateIndexes(size)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, idx := range indexes {
+			_ = sumUntilIndexSimple(counts, idx)
+		}
+	}
+}
+
+func BenchmarkSumLoopUnrolled(b *testing.B) {
+	for _, size := range sumSizes {
+		size := size
+		b.Run(fmt.Sprint(size), func(b *testing.B) {
+			benchmarkSumLoopUnrolled(b, size)
+		})
+	}
+}
+
+func benchmarkSumLoopUnrolled(b *testing.B, size int) {
+	counts := generateCounts(size)
+	indexes := generateIndexes(size)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, idx := range indexes {
+			_ = sumUntilIndex(counts, idx)
+		}
+	}
+}
+
+func generateCounts(size int) []uint32 {
+	counts := make([]uint32, size)
+	for i := 0; i < size; i++ {
+		counts[i] = rand.Uint32()
+	}
+	return counts
+}
+
+func generateIndexes(size int) []int {
+	const num = 100
+
+	indexes := make([]int, num)
+	for i := 0; i < num; i++ {
+		indexes[i] = rand.Intn(size)
+	}
+	return indexes
+}
+
+func sumUntilIndexSimple(counts []uint32, idx int) uint64 {
+	var sum uint64
+	for _, c := range counts {
+		sum += uint64(c)
+	}
+	return sum
 }
