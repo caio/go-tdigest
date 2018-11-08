@@ -225,7 +225,7 @@ func (t *TDigest) Compress() (err error) {
 	}
 
 	oldTree := t.summary
-	t.summary = newSummary(uint(t.summary.Len()))
+	t.summary = newSummary(t.summary.Len())
 	t.count = 0
 
 	shuffle(oldTree.means, oldTree.counts, t.rng)
@@ -304,7 +304,7 @@ func (t *TDigest) CDF(value float64) float64 {
 // Clone returns a deep copy of a TDigest.
 func (t *TDigest) Clone() *TDigest {
 	summary := t.summary.Clone()
-	summary.rebuildFenwickTree()
+	summary.rebuildFenwickTree(-1)
 	return &TDigest{
 		summary:     summary,
 		compression: t.compression,
@@ -425,6 +425,6 @@ func shuffle(means []float64, counts []uint32, rng RNG) {
 	}
 }
 
-func estimateCapacity(compression float64) uint {
-	return uint(compression) * 10
+func estimateCapacity(compression float64) int {
+	return int(compression) * 10
 }
