@@ -3,6 +3,7 @@ package tdigest
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"sort"
 )
 
@@ -159,6 +160,24 @@ func (s *summary) Clone() *summary {
 		means:  append([]float64{}, s.means...),
 		counts: append([]uint32{}, s.counts...),
 	}
+}
+
+// Randomly shuffles summary contents, so they can be added to another summary
+// with being pathological. Renders summary invalid.
+func (s *summary) shuffle(rng RNG) {
+	for i := len(s.means) - 1; i > 1; i-- {
+		s.Swap(i, rand.Intn(i+1))
+	}
+}
+
+// for sort.Interface
+func (s *summary) Swap(i, j int) {
+	s.means[i], s.means[j] = s.means[j], s.means[i]
+	s.counts[i], s.counts[j] = s.counts[j], s.counts[i]
+}
+
+func (s *summary) Less(i, j int) bool {
+	return s.means[i] < s.means[j]
 }
 
 // A simple loop unroll saves a surprising amount of time.

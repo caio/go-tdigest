@@ -228,7 +228,8 @@ func (t *TDigest) Compress() (err error) {
 	t.summary = newSummary(estimateCapacity(t.compression))
 	t.count = 0
 
-	oldTree.Perm(t.rng, func(mean float64, count uint32) bool {
+	oldTree.shuffle(t.rng)
+	oldTree.ForEach(func(mean float64, count uint32) bool {
 		err = t.AddWeighted(mean, count)
 		return err == nil
 	})
@@ -247,6 +248,20 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 	}
 
 	other.summary.Perm(t.rng, func(mean float64, count uint32) bool {
+		err = t.AddWeighted(mean, count)
+		return err == nil
+	})
+	return err
+}
+
+// As Merge, above, but leaves other in a scrambled state
+func (t *TDigest) MergeDestructive(other *TDigest) (err error) {
+	if other.summary.Len() == 0 {
+		return nil
+	}
+
+	other.summary.shuffle(t.rng)
+	other.summary.ForEach(func(mean float64, count uint32) bool {
 		err = t.AddWeighted(mean, count)
 		return err == nil
 	})

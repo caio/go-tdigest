@@ -298,7 +298,15 @@ func quantile(q float64, data []float64) float64 {
 	return data[int(index)+1]*(index-float64(int(index))) + data[int(index)]*(float64(int(index)+1)-index)
 }
 
-func TestMerge(t *testing.T) {
+func TestMergeNormal(t *testing.T) {
+	testMerge(t, false)
+}
+
+func TestMergeDescructive(t *testing.T) {
+	testMerge(t, true)
+}
+
+func testMerge(t *testing.T, destructive bool) {
 	if testing.Short() {
 		t.Skipf("Skipping merge test. Short flag is on")
 	}
@@ -326,7 +334,12 @@ func TestMerge(t *testing.T) {
 
 		dist2 := uncheckedNew()
 		for i := 0; i < numSubs; i++ {
-			_ = dist2.Merge(subs[i])
+			if destructive {
+				_ = dist2.MergeDestructive(subs[i])
+			} else {
+				_ = dist2.Merge(subs[i])
+			}
+
 		}
 
 		if dist.Count() != dist2.Count() {
