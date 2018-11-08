@@ -19,21 +19,19 @@ func newSummary(initialCapacity int) *summary {
 	return s
 }
 
-func (s summary) Len() int {
+func (s *summary) Len() int {
 	return len(s.means)
 }
 
 func (s *summary) Add(key float64, value uint32) error {
-
 	if math.IsNaN(key) {
 		return fmt.Errorf("Key must not be NaN")
 	}
-
 	if value == 0 {
 		return fmt.Errorf("Count must be >0")
 	}
 
-	idx := s.FindInsertionIndex(key)
+	idx := s.findInsertionIndex(key)
 
 	s.means = append(s.means, math.NaN())
 	s.counts = append(s.counts, 0)
@@ -47,14 +45,18 @@ func (s *summary) Add(key float64, value uint32) error {
 	return nil
 }
 
-func (s summary) Floor(x float64) int {
-	return sort.Search(len(s.means), func(i int) bool {
-		return s.means[i] >= x
-	}) - 1
-}
-
 // Always insert to the right
-func (s summary) FindInsertionIndex(x float64) int {
+func (s *summary) findInsertionIndex(x float64) int {
+	// Binary search is only worthwhile if we have a lot of keys.
+	if len(s.means) < 250 {
+		for i, mean := range s.means {
+			if mean > x {
+				return i
+			}
+		}
+		return len(s.means)
+	}
+
 	return sort.Search(len(s.means), func(i int) bool {
 		return s.means[i] > x
 	})
@@ -62,25 +64,35 @@ func (s summary) FindInsertionIndex(x float64) int {
 
 // This method is the hotspot when calling Add(), which in turn is called by
 // Compress() and Merge().
-func (s summary) HeadSum(idx int) (sum float64) {
+func (s *summary) HeadSum(idx int) (sum float64) {
 	return float64(sumUntilIndex(s.counts, idx))
 }
 
-func (s summary) FindIndex(x float64) int {
-	idx := sort.Search(len(s.means), func(i int) bool {
-		return s.means[i] >= x
-	})
-	if idx < s.Len() && s.means[idx] == x {
-		return idx
-	}
-	return s.Len()
+func (s *summary) Floor(x float64) int {
+	return s.findIndex(x) - 1
 }
 
-func (s summary) Mean(uncheckedIndex int) float64 {
+func (s *summary) findIndex(x float64) int {
+	// Binary search is only worthwhile if we have a lot of keys.
+	if len(s.means) < 250 {
+		for i, mean := range s.means {
+			if mean >= x {
+				return i
+			}
+		}
+		return len(s.means)
+	}
+
+	return sort.Search(len(s.means), func(i int) bool {
+		return s.means[i] >= x
+	})
+}
+
+func (s *summary) Mean(uncheckedIndex int) float64 {
 	return s.means[uncheckedIndex]
 }
 
-func (s summary) Count(uncheckedIndex int) uint32 {
+func (s *summary) Count(uncheckedIndex int) uint32 {
 	return s.counts[uncheckedIndex]
 }
 
@@ -89,15 +101,15 @@ func (s summary) Count(uncheckedIndex int) uint32 {
 // case no centroid satisfies the requirement.
 // Since it's cheap, this also returns the `HeadSum` until
 // the found index (i.e. cumSum = HeadSum(FloorSum(x)))
-func (s summary) FloorSum(sum float64) (index int, cumSum float64) {
+func (s *summary) FloorSum(sum float64) (index int, cumSum float64) {
 	index = -1
-	for i := 0; i < s.Len(); i++ {
+	for i, count := range s.counts {
 		if cumSum <= sum {
 			index = i
 		} else {
 			break
 		}
-		cumSum += float64(s.counts[i])
+		cumSum += float64(count)
 	}
 	if index != -1 {
 		cumSum -= float64(s.counts[index])
@@ -126,15 +138,23 @@ func (s *summary) adjustLeft(index int) {
 	}
 }
 
-func (s summary) ForEach(f func(float64, uint32) bool) {
-	for i := 0; i < len(s.means); i++ {
+func (s *summary) ForEach(f func(float64, uint32) bool) {
+	for i, mean := range s.means {
+		if !f(mean, s.counts[i]) {
+			break
+		}
+	}
+}
+
+func (s *summary) Perm(rng RNG, f func(float64, uint32) bool) {
+	for _, i := range rng.Perm(s.Len()) {
 		if !f(s.means[i], s.counts[i]) {
 			break
 		}
 	}
 }
 
-func (s summary) Clone() *summary {
+func (s *summary) Clone() *summary {
 	return &summary{
 		means:  append([]float64{}, s.means...),
 		counts: append([]uint32{}, s.counts...),

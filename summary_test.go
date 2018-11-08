@@ -62,7 +62,7 @@ func TestCore(t *testing.T) {
 	}
 
 	for k, v := range testData {
-		i := s.FindIndex(k)
+		i := s.findIndex(k)
 
 		if i == s.Len() {
 			t.Errorf("Couldn't find previously added key on summary")

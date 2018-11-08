@@ -9,6 +9,7 @@ import (
 type RNG interface {
 	Float32() float32
 	Intn(int) int
+	Perm(n int) []int
 }
 
 type globalRNG struct{}
@@ -19,6 +20,10 @@ func (r *globalRNG) Float32() float32 {
 
 func (r *globalRNG) Intn(i int) int {
 	return rand.Intn(i)
+}
+
+func (r *globalRNG) Perm(n int) []int {
+	return rand.Perm(n)
 }
 
 type localRNG struct {
@@ -37,4 +42,8 @@ func (r *localRNG) Float32() float32 {
 
 func (r *localRNG) Intn(i int) int {
 	return r.localRand.Intn(i)
+}
+
+func (r *localRNG) Perm(n int) []int {
+	return rand.Perm(n)
 }
