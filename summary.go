@@ -4,24 +4,18 @@ import (
 	"fmt"
 	"math"
 	"sort"
-
-	"github.com/caio/go-tdigest/internal/fenwick"
 )
 
 type summary struct {
-	initialCapacity int
-	means           []float64
-	counts          []uint32
-	bitree          *fenwick.List
+	means  []float64
+	counts []uint32
 }
 
 func newSummary(initialCapacity int) *summary {
 	s := &summary{
-		initialCapacity: initialCapacity,
-		means:           make([]float64, 0, initialCapacity),
-		counts:          make([]uint32, 0, initialCapacity),
+		means:  make([]float64, 0, initialCapacity),
+		counts: make([]uint32, 0, initialCapacity),
 	}
-	s.rebuildFenwickTree(-1)
 	return s
 }
 
@@ -50,28 +44,7 @@ func (s *summary) Add(key float64, value uint32) error {
 	s.means[idx] = key
 	s.counts[idx] = value
 
-	s.rebuildFenwickTree(idx)
-
 	return nil
-}
-
-func (s *summary) rebuildFenwickTree(idx int) {
-	if !s.useFenwickTree() {
-		return
-	}
-
-	if s.bitree == nil || s.bitree.Len() < len(s.counts) {
-		s.bitree = fenwick.New(s.counts[:cap(s.counts)]...)
-		return
-	}
-
-	for i := idx; i < len(s.counts); i++ {
-		s.bitree.Set(i, s.counts[i])
-	}
-}
-
-func (s *summary) useFenwickTree() bool {
-	return s.initialCapacity > 100 && len(s.counts) >= s.initialCapacity
 }
 
 func (s summary) Floor(x float64) int {
@@ -90,9 +63,6 @@ func (s summary) FindInsertionIndex(x float64) int {
 // This method is the hotspot when calling Add(), which in turn is called by
 // Compress() and Merge().
 func (s summary) HeadSum(idx int) (sum float64) {
-	if s.bitree != nil {
-		return float64(s.bitree.Sum(idx))
-	}
 	return float64(sumUntilIndex(s.counts, idx))
 }
 
@@ -140,9 +110,6 @@ func (s *summary) setAt(index int, mean float64, count uint32) {
 	s.counts[index] = count
 	s.adjustRight(index)
 	s.adjustLeft(index)
-	if s.bitree != nil {
-		s.bitree.Set(index, count)
-	}
 }
 
 func (s *summary) adjustRight(index int) {
