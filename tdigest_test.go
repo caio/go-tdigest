@@ -7,7 +7,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/caio/go-tdigest/internal/fenwick"
 	"github.com/leesper/go_rng"
 	"gonum.org/v1/gonum/stat"
 )
@@ -504,7 +503,6 @@ func TestCDFInsideLastCentroid(t *testing.T) {
 		count:       1250,
 		rng:         &globalRNG{},
 	}
-	td.summary.rebuildFenwickTree(-1)
 
 	if cdf := td.CDF(7.144560976650238e+06); cdf > 1 {
 		t.Fatalf("invalid: %v", cdf)
@@ -773,29 +771,6 @@ func randomTDigest(compression uint32) *TDigest {
 }
 
 var sumSizes = []int{10, 100, 1000, 10000}
-
-func BenchmarkSumFenwickTree(b *testing.B) {
-	for _, size := range sumSizes {
-		size := size
-		b.Run(fmt.Sprint(size), func(b *testing.B) {
-			benchmarkSumFenwickTree(b, size)
-		})
-	}
-}
-
-func benchmarkSumFenwickTree(b *testing.B, size int) {
-	counts := generateCounts(size)
-	indexes := generateIndexes(size)
-	tree := fenwick.New(counts...)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		for _, idx := range indexes {
-			_ = tree.Sum(idx)
-		}
-	}
-}
 
 func BenchmarkSumLoopSimple(b *testing.B) {
 	for _, size := range sumSizes {

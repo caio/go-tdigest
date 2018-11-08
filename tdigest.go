@@ -303,10 +303,8 @@ func (t *TDigest) CDF(value float64) float64 {
 
 // Clone returns a deep copy of a TDigest.
 func (t *TDigest) Clone() *TDigest {
-	summary := t.summary.Clone()
-	summary.rebuildFenwickTree(-1)
 	return &TDigest{
-		summary:     summary,
+		summary:     t.summary.Clone(),
 		compression: t.compression,
 		count:       t.count,
 		rng:         t.rng,
