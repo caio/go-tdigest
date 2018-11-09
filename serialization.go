@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 )
 
 const smallEncoding int32 = 2
@@ -116,6 +117,65 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	}
 
 	return t, nil
+}
+
+// FromBytes deserializes into the supplied TDigest struct, re-using and
+// overwriting any existing buffers.
+func (t *TDigest) FromBytes(buf []byte) error {
+	if len(buf) < 16 {
+		return errors.New("buffer too small for deserialization")
+	}
+
+	encoding := int32(endianess.Uint32(buf))
+	if encoding != smallEncoding {
+		return fmt.Errorf("unsupported encoding version: %d", encoding)
+	}
+
+	compression := math.Float64frombits(endianess.Uint64(buf[4:12]))
+	numCentroids := int(endianess.Uint32(buf[12:16]))
+	if numCentroids < 0 || numCentroids > 1<<22 {
+		return errors.New("bad number of centroids in serialization")
+	}
+
+	if len(buf) < 16+(4*numCentroids) {
+		return errors.New("buffer too small for deserialization")
+	}
+
+	t.count = 0
+	t.compression = compression
+	if t.summary == nil ||
+		cap(t.summary.means) < numCentroids ||
+		cap(t.summary.counts) < numCentroids {
+		t.summary = newSummary(numCentroids)
+	}
+	t.summary.means = t.summary.means[:numCentroids]
+	t.summary.counts = t.summary.counts[:numCentroids]
+
+	idx := 16
+	var x float64
+	for i := 0; i < numCentroids; i++ {
+		delta := math.Float32frombits(endianess.Uint32(buf[idx:]))
+		idx += 4
+		x += float64(delta)
+		t.summary.means[i] = x
+	}
+
+	for i := 0; i < numCentroids; i++ {
+		count, read := binary.Uvarint(buf[idx:])
+		if read < 1 {
+			return errors.New("error decoding varint, this TDigest is now invalid")
+		}
+
+		idx += read
+
+		t.summary.counts[i] = uint32(count)
+		t.count += count
+	}
+
+	if idx != len(buf) {
+		return errors.New("buffer has unread data")
+	}
+	return nil
 }
 
 func encodeUint(buf *bytes.Buffer, n uint32) error {

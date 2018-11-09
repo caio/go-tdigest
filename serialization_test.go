@@ -33,10 +33,24 @@ func TestSerialization(t *testing.T) {
 
 	serialized, _ := t1.AsBytes()
 
-	t2, _ := FromBytes(bytes.NewReader(serialized))
+	t2, err := FromBytes(bytes.NewReader(serialized))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEqual(t, t1, t2)
 
-	if t1.Count() != t2.Count() || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
-		t.Errorf("Deserialized to something different. t1=%v t2=%v serialized=%v", t1, t2, serialized)
+	err = t2.FromBytes(serialized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEqual(t, t1, t2)
+}
+
+func assertEqual(t *testing.T, t1, t2 *TDigest) {
+	if t1.Count() != t2.Count() ||
+		t1.summary.Len() != t2.summary.Len() ||
+		t1.compression != t2.compression {
+		t.Errorf("Deserialized to something different. t1=%v t2=%v", t1, t2)
 	}
 }
 
