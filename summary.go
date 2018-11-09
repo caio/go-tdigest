@@ -3,7 +3,6 @@ package tdigest
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"sort"
 )
 
@@ -148,7 +147,7 @@ func (s *summary) ForEach(f func(float64, uint32) bool) {
 }
 
 func (s *summary) Perm(rng RNG, f func(float64, uint32) bool) {
-	for _, i := range rng.Perm(s.Len()) {
+	for _, i := range perm(rng, s.Len()) {
 		if !f(s.means[i], s.counts[i]) {
 			break
 		}
@@ -166,7 +165,7 @@ func (s *summary) Clone() *summary {
 // with being pathological. Renders summary invalid.
 func (s *summary) shuffle(rng RNG) {
 	for i := len(s.means) - 1; i > 1; i-- {
-		s.Swap(i, rand.Intn(i+1))
+		s.Swap(i, rng.Intn(i+1))
 	}
 }
 
@@ -194,4 +193,14 @@ func sumUntilIndex(s []uint32, idx int) uint64 {
 		cumSum += uint64(s[i])
 	}
 	return cumSum
+}
+
+func perm(rng RNG, n int) []int {
+	m := make([]int, n)
+	for i := 1; i < n; i++ {
+		j := rng.Intn(i + 1)
+		m[i] = m[j]
+		m[j] = i
+	}
+	return m
 }

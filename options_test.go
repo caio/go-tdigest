@@ -37,7 +37,8 @@ func TestRandomNumberGenerator(t *testing.T) {
 	// So that they should emit the same values when called
 	// at the same frequency
 	for i := 0; i < numTests; i++ {
-		if t1.rng.Float32() != t2.rng.Float32() || t1.rng.Intn(10) != t2.rng.Intn(10) {
+		if t1.rng.Float32() != t2.rng.Float32() ||
+			t1.rng.Intn(10) != t2.rng.Intn(10) {
 			t.Errorf("r1 and r2 should be distinct RNGs returning the same values")
 		}
 	}
