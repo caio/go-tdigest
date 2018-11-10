@@ -19,7 +19,7 @@ func TestEncodeDecode(t *testing.T) {
 	for _, i := range testUints {
 		j, _ := decodeUint(readBuf)
 
-		if i != j {
+		if i != uint32(j) {
 			t.Errorf("Basic encode/decode failed. Got %d, wanted %d", j, i)
 		}
 	}

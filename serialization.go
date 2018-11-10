@@ -77,9 +77,8 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		return nil, err
 	}
 
-	t, err := New(Compression(uint32(compression)))
-	if err != nil {
-		return nil, err
+	t := &TDigest{
+		compression: compression,
 	}
 
 	var numCentroids int32
@@ -92,28 +91,28 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		return nil, errors.New("bad number of centroids in serialization")
 	}
 
-	means := make([]float64, numCentroids)
-	var delta float32
+	t.summary = newSummary(int(numCentroids))
+	t.summary.means = t.summary.means[:numCentroids]
+	t.summary.counts = t.summary.counts[:numCentroids]
+
 	var x float64
 	for i := 0; i < int(numCentroids); i++ {
+		var delta float32
 		err = binary.Read(buf, endianess, &delta)
 		if err != nil {
 			return nil, err
 		}
 		x += float64(delta)
-		means[i] = x
+		t.summary.means[i] = x
 	}
 
 	for i := 0; i < int(numCentroids); i++ {
-		decUint, err := decodeUint(buf)
+		count, err := decodeUint(buf)
 		if err != nil {
 			return nil, err
 		}
-
-		err = t.AddWeighted(means[i], decUint)
-		if err != nil {
-			return nil, err
-		}
+		t.summary.counts[i] = uint32(count)
+		t.count += count
 	}
 
 	return t, nil
@@ -188,10 +187,10 @@ func encodeUint(buf *bytes.Buffer, n uint32) error {
 	return err
 }
 
-func decodeUint(buf *bytes.Reader) (uint32, error) {
+func decodeUint(buf *bytes.Reader) (uint64, error) {
 	v, err := binary.ReadUvarint(buf)
 	if v > 0xffffffff {
 		return 0, errors.New("Something wrong, this number looks too big")
 	}
-	return uint32(v), err
+	return v, err
 }
