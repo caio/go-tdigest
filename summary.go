@@ -6,9 +6,66 @@ import (
 	"sort"
 )
 
+type sumCache struct {
+	sums  []uint64
+	valid int
+}
+
+func newSumCache(n int) *sumCache {
+	return &sumCache{
+		sums:  make([]uint64, n>>2),
+		valid: -1,
+	}
+}
+
+func (s *sumCache) Clone() *sumCache {
+	if s == nil {
+		return nil
+	}
+	return &sumCache{
+		sums:  append([]uint64(nil), s.sums...),
+		valid: s.valid,
+	}
+}
+
+func (s *sumCache) Set(idx int, sum uint64) {
+	if s == nil || idx < 4 {
+		return
+	}
+	idx = idx>>2 - 1
+	if idx == len(s.sums) {
+		s.sums = append(s.sums, sum)
+	} else {
+		s.sums[idx] = sum
+	}
+	s.valid = idx
+}
+
+func (s *sumCache) Invalidate(idx int) {
+	if s == nil {
+		return
+	}
+	idx = idx>>2 - 1
+	if idx-1 < s.valid {
+		s.valid = idx - 1
+	}
+}
+
+func (s *sumCache) Get(idx int) (int, uint64) {
+	if s == nil || idx < 4 || s.valid < 0 {
+		return 0, 0
+	}
+	idx = idx>>2 - 1
+	if idx <= s.valid {
+		return (idx + 1) << 2, s.sums[idx]
+	}
+	return (s.valid + 1) << 2, s.sums[s.valid]
+}
+
 type summary struct {
-	means  []float64
-	counts []uint32
+	means    []float64
+	counts   []uint32
+	sumCache *sumCache
 }
 
 func newSummary(initialCapacity int) *summary {
@@ -42,6 +99,12 @@ func (s *summary) Add(key float64, value uint32) error {
 	s.means[idx] = key
 	s.counts[idx] = value
 
+	if s.sumCache != nil {
+		s.sumCache.Invalidate(idx)
+	} else if len(s.means) > 100 {
+		s.sumCache = newSumCache(cap(s.means))
+	}
+
 	return nil
 }
 
@@ -64,8 +127,25 @@ func (s *summary) findInsertionIndex(x float64) int {
 
 // This method is the hotspot when calling Add(), which in turn is called by
 // Compress() and Merge().
-func (s *summary) HeadSum(idx int) (sum float64) {
-	return float64(sumUntilIndex(s.counts, idx))
+func (s *summary) HeadSum(end int) float64 {
+	i, sum := s.sumCache.Get(end)
+	if i == end {
+		return float64(sum)
+	}
+
+	// A simple loop unroll saves a surprising amount of time.
+	for ; i < end-3; i += 4 {
+		s.sumCache.Set(i, sum)
+		sum += uint64(s.counts[i])
+		sum += uint64(s.counts[i+1])
+		sum += uint64(s.counts[i+2])
+		sum += uint64(s.counts[i+3])
+	}
+	for ; i < end; i++ {
+		sum += uint64(s.counts[i])
+	}
+
+	return float64(sum)
 }
 
 func (s *summary) Floor(x float64) int {
@@ -156,8 +236,9 @@ func (s *summary) Perm(rng RNG, f func(float64, uint32) bool) {
 
 func (s *summary) Clone() *summary {
 	return &summary{
-		means:  append([]float64{}, s.means...),
-		counts: append([]uint32{}, s.counts...),
+		means:    append([]float64{}, s.means...),
+		counts:   append([]uint32{}, s.counts...),
+		sumCache: s.sumCache.Clone(),
 	}
 }
 
@@ -177,22 +258,6 @@ func (s *summary) Swap(i, j int) {
 
 func (s *summary) Less(i, j int) bool {
 	return s.means[i] < s.means[j]
-}
-
-// A simple loop unroll saves a surprising amount of time.
-func sumUntilIndex(s []uint32, idx int) uint64 {
-	var cumSum uint64
-	var i int
-	for i = idx - 1; i >= 3; i -= 4 {
-		cumSum += uint64(s[i])
-		cumSum += uint64(s[i-1])
-		cumSum += uint64(s[i-2])
-		cumSum += uint64(s[i-3])
-	}
-	for ; i >= 0; i-- {
-		cumSum += uint64(s[i])
-	}
-	return cumSum
 }
 
 func perm(rng RNG, n int) []int {

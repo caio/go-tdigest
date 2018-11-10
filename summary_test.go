@@ -141,10 +141,10 @@ func TestFloorSum(t *testing.T) {
 	for i := float64(0); i < float64(total)+10; i++ {
 		node, _ := s.FloorSum(i)
 		if s.HeadSum(node) > i {
-			t.Errorf("headSum(%d)=%.0f (>%.0f)", node, s.HeadSum(node), i)
+			t.Fatalf("headSum(%d)=%.0f (>%.0f)", node, s.HeadSum(node), i)
 		}
 		if node+1 < s.Len() && s.HeadSum(node+1) <= i {
-			t.Errorf("headSum(%d)=%.0f (>%.0f)", node+1, s.HeadSum(node+1), i)
+			t.Fatalf("headSum(%d)=%.0f (>%.0f)", node+1, s.HeadSum(node+1), i)
 		}
 	}
 }
@@ -189,5 +189,61 @@ func TestAdjustLeftRight(t *testing.T) {
 
 	if !sort.Float64sAreSorted(s.means) || s.counts[4] != 4 {
 		t.Errorf("adjustLeft should have fixed the keys/counts state. %v %v", s.means, s.counts)
+	}
+}
+
+var sumCacheTests = []struct {
+	until int
+	idx   int
+	sum   uint64
+}{
+	{0, 0, 0},
+	{1, 0, 0},
+	{2, 0, 0},
+	{3, 0, 0},
+	{4, 4, 4},
+	{5, 4, 4},
+	{6, 4, 4},
+	{7, 4, 4},
+	{8, 8, 8},
+	{9, 8, 8},
+}
+
+func TestSumCache(t *testing.T) {
+	s := newSumCache(100)
+	for i := 0; i < 100; i++ {
+		if i%4 == 0 {
+			s.Set(i, uint64(i))
+		}
+	}
+
+	for i, test := range sumCacheTests {
+		idx, sum := s.Get(test.until)
+		if idx != test.idx {
+			t.Fatalf("#%d got idx=%d, wanted %d", i, idx, test.idx)
+		}
+		if sum != test.sum {
+			t.Fatalf("#%d got sum=%d, wanted %d", i, sum, test.sum)
+		}
+	}
+
+	s.Invalidate(10)
+	idx, sum := s.Get(10)
+	if idx != 4 {
+		t.Fatalf("got idx=%d, wanted %d", idx, 4)
+	}
+	if sum != 4 {
+		t.Fatalf("got sum=%d, wanted %d", sum, 4)
+	}
+
+	s.Invalidate(0)
+	for i := 0; i < 100; i++ {
+		idx, sum := s.Get(i)
+		if idx != 0 {
+			t.Fatalf("got idx=%d, wanted %d", idx, 0)
+		}
+		if sum != 0 {
+			t.Fatalf("got sum=%d, wanted %d", sum, 0)
+		}
 	}
 }

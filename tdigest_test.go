@@ -783,52 +783,6 @@ func randomTDigest(compression uint32) *TDigest {
 	return t
 }
 
-var sumSizes = []int{10, 100, 1000, 10000}
-
-func BenchmarkSumLoopSimple(b *testing.B) {
-	for _, size := range sumSizes {
-		size := size
-		b.Run(fmt.Sprint(size), func(b *testing.B) {
-			benchmarkSumLoopSimple(b, size)
-		})
-	}
-}
-
-func benchmarkSumLoopSimple(b *testing.B, size int) {
-	counts := generateCounts(size)
-	indexes := generateIndexes(size)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		for _, idx := range indexes {
-			_ = sumUntilIndexSimple(counts, idx)
-		}
-	}
-}
-
-func BenchmarkSumLoopUnrolled(b *testing.B) {
-	for _, size := range sumSizes {
-		size := size
-		b.Run(fmt.Sprint(size), func(b *testing.B) {
-			benchmarkSumLoopUnrolled(b, size)
-		})
-	}
-}
-
-func benchmarkSumLoopUnrolled(b *testing.B, size int) {
-	counts := generateCounts(size)
-	indexes := generateIndexes(size)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		for _, idx := range indexes {
-			_ = sumUntilIndex(counts, idx)
-		}
-	}
-}
-
 func generateCounts(size int) []uint32 {
 	counts := make([]uint32, size)
 	for i := 0; i < size; i++ {
