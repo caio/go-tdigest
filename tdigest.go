@@ -254,7 +254,12 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 	return err
 }
 
-// As Merge, above, but leaves other in a scrambled state
+// MergeDestructive joins a given digest into itself rendering
+// the other digest invalid.
+//
+// This works as Merge above but its faster. Using this method
+// requires caution as it makes 'other' useless - you must make
+// sure you discard it without making further uses of it.
 func (t *TDigest) MergeDestructive(other *TDigest) (err error) {
 	if other.summary.Len() == 0 {
 		return nil
