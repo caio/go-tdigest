@@ -118,8 +118,12 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 	return t, nil
 }
 
-// FromBytes deserializes into the supplied TDigest struct, re-using and
-// overwriting any existing buffers.
+// FromBytes deserializes into the supplied TDigest struct, re-using
+// and overwriting any existing buffers.
+//
+// This method reinitializes the digest from the provided buffer
+// discarding any previously collected data. Notice that in case
+// of errors this may leave the digest in a unusable state.
 func (t *TDigest) FromBytes(buf []byte) error {
 	if len(buf) < 16 {
 		return errors.New("buffer too small for deserialization")
