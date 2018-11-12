@@ -514,7 +514,7 @@ func TestCDFInsideLastCentroid(t *testing.T) {
 		},
 		compression: 5,
 		count:       1250,
-		rng:         globalRNG{},
+		rng:         newLocalRNG(0),
 	}
 
 	if cdf := td.CDF(7.144560976650238e+06); cdf > 1 {
