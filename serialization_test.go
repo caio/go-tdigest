@@ -37,20 +37,46 @@ func TestSerialization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, t1, t2)
+	assertSerialization(t, t1, t2)
 
 	err = t2.FromBytes(serialized)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, t1, t2)
+	assertSerialization(t, t1, t2)
 }
 
-func assertEqual(t *testing.T, t1, t2 *TDigest) {
+func assertSerialization(t *testing.T, t1, t2 *TDigest) {
 	if t1.Count() != t2.Count() ||
 		t1.summary.Len() != t2.summary.Len() ||
 		t1.compression != t2.compression {
 		t.Errorf("Deserialized to something different. t1=%v t2=%v", t1, t2)
+	}
+
+	b1, err := t1.AsBytes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	b2, err := t2.AsBytes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !bytes.Equal(b1, b2) {
+		t.Errorf("Deserialized to something different. b1=%q b2=%q", b1, b2)
+	}
+
+	// t2 is fully functional.
+
+	err = t2.Add(rand.Float64())
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = t2.Compress()
+	if err != nil {
+		t.Error(err)
 	}
 }
 

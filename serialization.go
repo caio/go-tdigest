@@ -79,6 +79,7 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 
 	t := &TDigest{
 		compression: compression,
+		rng:         globalRNG{},
 	}
 
 	var numCentroids int32
