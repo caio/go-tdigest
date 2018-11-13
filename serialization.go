@@ -60,7 +60,11 @@ func (t TDigest) AsBytes() ([]byte, error) {
 
 // FromBytes reads a byte buffer with a serialized digest (from AsBytes)
 // and deserializes it.
-func FromBytes(buf *bytes.Reader) (*TDigest, error) {
+//
+// This function creates a new tdigest instance with the provided options,
+// but ignores the compression setting since the correct value comes
+// from the buffer.
+func FromBytes(buf *bytes.Reader, options ...tdigestOption) (*TDigest, error) {
 	var encoding int32
 	err := binary.Read(buf, endianess, &encoding)
 	if err != nil {
@@ -71,16 +75,19 @@ func FromBytes(buf *bytes.Reader) (*TDigest, error) {
 		return nil, fmt.Errorf("Unsupported encoding version: %d", encoding)
 	}
 
+	t, err := newWithoutSummary(options...)
+
+	if err != nil {
+		return nil, err
+	}
+
 	var compression float64
 	err = binary.Read(buf, endianess, &compression)
 	if err != nil {
 		return nil, err
 	}
 
-	t := &TDigest{
-		compression: compression,
-		rng:         globalRNG{},
-	}
+	t.compression = compression
 
 	var numCentroids int32
 	err = binary.Read(buf, endianess, &numCentroids)

@@ -40,6 +40,18 @@ type TDigest struct {
 // set to 100 and uses the global random number generator (same
 // as using math/rand top-level functions).
 func New(options ...tdigestOption) (*TDigest, error) {
+	tdigest, err := newWithoutSummary(options...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	tdigest.summary = newSummary(estimateCapacity(tdigest.compression))
+	return tdigest, nil
+}
+
+// Creates a tdigest instance without allocating a summary.
+func newWithoutSummary(options ...tdigestOption) (*TDigest, error) {
 	tdigest := &TDigest{
 		compression: 100,
 		count:       0,
@@ -53,7 +65,6 @@ func New(options ...tdigestOption) (*TDigest, error) {
 		}
 	}
 
-	tdigest.summary = newSummary(estimateCapacity(tdigest.compression))
 	return tdigest, nil
 }
 

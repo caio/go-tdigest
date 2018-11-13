@@ -80,6 +80,28 @@ func assertSerialization(t *testing.T, t1, t2 *TDigest) {
 	}
 }
 
+func TestFromBytesIgnoresCompression(t *testing.T) {
+	digest := uncheckedNew(Compression(42))
+
+	// Instructing FromBytes to use a compression different
+	// than the one in the payload should be ignored
+	payload, err := digest.AsBytes()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	other, err := FromBytes(bytes.NewReader(payload), Compression(100))
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if other.Compression() != 42 {
+		t.Errorf("Expected compression to be 42, got %f", other.Compression())
+	}
+}
+
 func TestJavaSmallBytesCompat(t *testing.T) {
 	// Base64 string generated via (<3 clojure):
 	// (def t (com.tdunning.math.stats.AVLTreeDigest. 100))
