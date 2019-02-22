@@ -32,8 +32,7 @@ We expect that pull requests:
 - Have [good commit messages][commits]
 - Contain tests for new features
 - Target and can be cleanly merged with the  `master` branch
-- Pass the tests (TravisCI will run them automatically but `go test` is
-  your friend)
+- Pass the tests
 
 [commits]: https://www.git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project#_commit_guidelines
 
