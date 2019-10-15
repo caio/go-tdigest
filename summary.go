@@ -6,197 +6,201 @@ import (
 	"sort"
 )
 
-type centroid struct {
-	mean  float64
-	count uint64
-	index int
-}
-
-func (c centroid) isValid() bool {
-	return !math.IsNaN(c.mean) && c.count > 0
-}
-
-func (c *centroid) Update(x float64, weight uint64) {
-	c.count += weight
-	c.mean += float64(weight) * (x - c.mean) / float64(c.count)
-}
-
-var invalidCentroid = centroid{mean: math.NaN(), count: 0}
-
 type summary struct {
-	keys   []float64
+	means  []float64
 	counts []uint64
 }
 
-func newSummary(initialCapacity uint) *summary {
-	return &summary{
-		keys:   make([]float64, 0, initialCapacity),
+func newSummary(initialCapacity int) *summary {
+	s := &summary{
+		means:  make([]float64, 0, initialCapacity),
 		counts: make([]uint64, 0, initialCapacity),
 	}
+	return s
 }
 
-func (s summary) Len() int {
-	return len(s.keys)
+func (s *summary) Len() int {
+	return len(s.means)
 }
 
 func (s *summary) Add(key float64, value uint64) error {
-
 	if math.IsNaN(key) {
 		return fmt.Errorf("Key must not be NaN")
 	}
-
 	if value == 0 {
 		return fmt.Errorf("Count must be >0")
 	}
 
-	idx := s.FindIndex(key)
+	idx := s.findInsertionIndex(key)
 
-	if s.meanAtIndexIs(idx, key) {
-		s.updateAt(idx, key, value)
-		return nil
-	}
-
-	s.keys = append(s.keys, math.NaN())
+	s.means = append(s.means, math.NaN())
 	s.counts = append(s.counts, 0)
 
-	copy(s.keys[idx+1:], s.keys[idx:])
+	copy(s.means[idx+1:], s.means[idx:])
 	copy(s.counts[idx+1:], s.counts[idx:])
 
-	s.keys[idx] = key
+	s.means[idx] = key
 	s.counts[idx] = value
 
 	return nil
 }
 
-func (s summary) Find(x float64) centroid {
-	idx := s.FindIndex(x)
-
-	if idx < s.Len() && s.keys[idx] == x {
-		return centroid{x, s.counts[idx], idx}
-	}
-
-	return invalidCentroid
-}
-
-func (s summary) FindIndex(x float64) int {
-	// FIXME When is linear scan better than binsearch()?
-	//       should I even bother?
-	if len(s.keys) < 30 {
-		for i, item := range s.keys {
-			if item >= x {
+// Always insert to the right
+func (s *summary) findInsertionIndex(x float64) int {
+	// Binary search is only worthwhile if we have a lot of keys.
+	if len(s.means) < 250 {
+		for i, mean := range s.means {
+			if mean > x {
 				return i
 			}
 		}
-		return len(s.keys)
+		return len(s.means)
 	}
 
-	return sort.Search(len(s.keys), func(i int) bool {
-		return s.keys[i] >= x
+	return sort.Search(len(s.means), func(i int) bool {
+		return s.means[i] > x
 	})
 }
 
-func (s summary) At(index int) centroid {
-	if s.Len()-1 < index || index < 0 {
-		return invalidCentroid
-	}
-
-	return centroid{s.keys[index], s.counts[index], index}
+// This method is the hotspot when calling Add(), which in turn is called by
+// Compress() and Merge().
+func (s *summary) HeadSum(idx int) (sum float64) {
+	return float64(sumUntilIndex(s.counts, idx))
 }
 
-func (s summary) Iterate(f func(c centroid) bool) {
-	for i := 0; i < s.Len(); i++ {
-		if !f(centroid{s.keys[i], s.counts[i], i}) {
-			break
+func (s *summary) Floor(x float64) int {
+	return s.findIndex(x) - 1
+}
+
+func (s *summary) findIndex(x float64) int {
+	// Binary search is only worthwhile if we have a lot of keys.
+	if len(s.means) < 250 {
+		for i, mean := range s.means {
+			if mean >= x {
+				return i
+			}
 		}
+		return len(s.means)
 	}
-}
 
-func (s summary) Min() centroid {
-	return s.At(0)
-}
-
-func (s summary) Max() centroid {
-	return s.At(s.Len() - 1)
-}
-
-func (s summary) Data() []centroid {
-	data := make([]centroid, 0, s.Len())
-	s.Iterate(func(c centroid) bool {
-		data = append(data, c)
-		return true
+	return sort.Search(len(s.means), func(i int) bool {
+		return s.means[i] >= x
 	})
-	return data
 }
 
-func (s summary) successorAndPredecessorItems(mean float64) (centroid, centroid) {
-	idx := s.FindIndex(mean)
-	return s.At(idx + 1), s.At(idx - 1)
+func (s *summary) Mean(uncheckedIndex int) float64 {
+	return s.means[uncheckedIndex]
 }
 
-func (s summary) ceilingAndFloorItems(mean float64) (centroid, centroid) {
-	idx := s.FindIndex(mean)
-
-	// Case 1: item is greater than all items in the summary
-	if idx == s.Len() {
-		return invalidCentroid, s.Max()
-	}
-
-	item := s.At(idx)
-
-	// Case 2: item exists in the summary
-	if item.isValid() && mean == item.mean {
-		return item, item
-	}
-
-	// Case 3: item is smaller than all items in the summary
-	if idx == 0 {
-		return s.Min(), invalidCentroid
-	}
-
-	return item, s.At(idx - 1)
+func (s *summary) Count(uncheckedIndex int) uint64 {
+	return s.counts[uncheckedIndex]
 }
 
-func (s summary) sumUntilMean(mean float64) uint64 {
-	var cumSum uint64
-	for i := range s.keys {
-		if s.keys[i] < mean {
-			cumSum += s.counts[i]
+// return the index of the last item which the sum of counts
+// of items before it is less than or equal to `sum`. -1 in
+// case no centroid satisfies the requirement.
+// Since it's cheap, this also returns the `HeadSum` until
+// the found index (i.e. cumSum = HeadSum(FloorSum(x)))
+func (s *summary) FloorSum(sum float64) (index int, cumSum float64) {
+	index = -1
+	for i, count := range s.counts {
+		if cumSum <= sum {
+			index = i
 		} else {
 			break
 		}
+		cumSum += float64(count)
 	}
-	return cumSum
+	if index != -1 {
+		cumSum -= float64(s.counts[index])
+	}
+	return index, cumSum
 }
 
-func (s *summary) updateAt(index int, mean float64, count uint64) {
-	c := centroid{s.keys[index], s.counts[index], index}
-	c.Update(mean, count)
-
-	oldMean := s.keys[index]
-	s.keys[index] = c.mean
-	s.counts[index] = c.count
-
-	if c.mean > oldMean {
-		s.adjustRight(index)
-	} else if c.mean < oldMean {
-		s.adjustLeft(index)
-	}
+func (s *summary) setAt(index int, mean float64, count uint64) {
+	s.means[index] = mean
+	s.counts[index] = count
+	s.adjustRight(index)
+	s.adjustLeft(index)
 }
 
 func (s *summary) adjustRight(index int) {
-	for i := index + 1; i < len(s.keys) && s.keys[i-1] > s.keys[i]; i++ {
-		s.keys[i-1], s.keys[i] = s.keys[i], s.keys[i-1]
+	for i := index + 1; i < len(s.means) && s.means[i-1] > s.means[i]; i++ {
+		s.means[i-1], s.means[i] = s.means[i], s.means[i-1]
 		s.counts[i-1], s.counts[i] = s.counts[i], s.counts[i-1]
 	}
 }
 
 func (s *summary) adjustLeft(index int) {
-	for i := index - 1; i >= 0 && s.keys[i] > s.keys[i+1]; i-- {
-		s.keys[i], s.keys[i+1] = s.keys[i+1], s.keys[i]
+	for i := index - 1; i >= 0 && s.means[i] > s.means[i+1]; i-- {
+		s.means[i], s.means[i+1] = s.means[i+1], s.means[i]
 		s.counts[i], s.counts[i+1] = s.counts[i+1], s.counts[i]
 	}
 }
 
-func (s summary) meanAtIndexIs(index int, mean float64) bool {
-	return index < len(s.keys) && s.keys[index] == mean
+func (s *summary) ForEach(f func(float64, uint64) bool) {
+	for i, mean := range s.means {
+		if !f(mean, s.counts[i]) {
+			break
+		}
+	}
+}
+
+func (s *summary) Perm(rng RNG, f func(float64, uint64) bool) {
+	for _, i := range perm(rng, s.Len()) {
+		if !f(s.means[i], s.counts[i]) {
+			break
+		}
+	}
+}
+
+func (s *summary) Clone() *summary {
+	return &summary{
+		means:  append([]float64{}, s.means...),
+		counts: append([]uint64{}, s.counts...),
+	}
+}
+
+// Randomly shuffles summary contents, so they can be added to another summary
+// with being pathological. Renders summary invalid.
+func (s *summary) shuffle(rng RNG) {
+	for i := len(s.means) - 1; i > 1; i-- {
+		s.Swap(i, rng.Intn(i+1))
+	}
+}
+
+// for sort.Interface
+func (s *summary) Swap(i, j int) {
+	s.means[i], s.means[j] = s.means[j], s.means[i]
+	s.counts[i], s.counts[j] = s.counts[j], s.counts[i]
+}
+
+func (s *summary) Less(i, j int) bool {
+	return s.means[i] < s.means[j]
+}
+
+// A simple loop unroll saves a surprising amount of time.
+func sumUntilIndex(s []uint64, idx int) uint64 {
+	var cumSum uint64
+	var i int
+	for i = idx - 1; i >= 3; i -= 4 {
+		cumSum += uint64(s[i])
+		cumSum += uint64(s[i-1])
+		cumSum += uint64(s[i-2])
+		cumSum += uint64(s[i-3])
+	}
+	for ; i >= 0; i-- {
+		cumSum += uint64(s[i])
+	}
+	return cumSum
+}
+
+func perm(rng RNG, n int) []int {
+	m := make([]int, n)
+	for i := 1; i < n; i++ {
+		j := rng.Intn(i + 1)
+		m[i] = m[j]
+		m[j] = i
+	}
+	return m
 }

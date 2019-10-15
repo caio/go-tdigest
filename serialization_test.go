@@ -13,12 +13,18 @@ func TestEncodeDecode(t *testing.T) {
 	buf := new(bytes.Buffer)
 
 	for _, i := range testUints {
-		encodeUint(buf, i)
+		err := encodeUint(buf, i)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	readBuf := bytes.NewReader(buf.Bytes())
 	for _, i := range testUints {
-		j, _ := decodeUint(readBuf)
+		j, err := decodeUint(readBuf)
+		if err != nil {
+			t.Error(err)
+		}
 
 		if i != j {
 			t.Errorf("Basic encode/decode failed. Got %d, wanted %d", j, i)
@@ -27,19 +33,79 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func TestSerialization(t *testing.T) {
-	// NOTE Using a high compression value and adding few items
-	//      so we don't end up compressing automatically
-	t1 := New(100)
+	t1, _ := New()
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		_ = t1.Add(rand.Float64())
 	}
 
 	serialized, _ := t1.AsBytes()
 
-	t2, _ := FromBytes(bytes.NewReader(serialized))
+	t2, err := FromBytes(bytes.NewReader(serialized))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertSerialization(t, t1, t2)
 
-	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
-		t.Errorf("Deserialized to something different. t1=%v t2=%v serialized=%v", t1, t2, serialized)
+	err = t2.FromBytes(serialized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertSerialization(t, t1, t2)
+}
+
+func assertSerialization(t *testing.T, t1, t2 *TDigest) {
+	if t1.Count() != t2.Count() ||
+		t1.summary.Len() != t2.summary.Len() ||
+		t1.compression != t2.compression {
+		t.Errorf("Deserialized to something different. t1=%v t2=%v", t1, t2)
+	}
+
+	b1, err := t1.AsBytes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	b2, err := t2.AsBytes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !bytes.Equal(b1, b2) {
+		t.Errorf("Deserialized to something different. b1=%q b2=%q", b1, b2)
+	}
+
+	// t2 is fully functional.
+
+	err = t2.Add(rand.Float64())
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = t2.Compress()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestFromBytesIgnoresCompression(t *testing.T) {
+	digest := uncheckedNew(Compression(42))
+
+	// Instructing FromBytes to use a compression different
+	// than the one in the payload should be ignored
+	payload, err := digest.AsBytes()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	other, err := FromBytes(bytes.NewReader(payload), Compression(100))
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if other.Compression() != 42 {
+		t.Errorf("Expected compression to be 42, got %f", other.Compression())
 	}
 }
 
@@ -74,8 +140,8 @@ func TestJavaSmallBytesCompat(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	if tdigest.count != 100000 {
-		t.Fatalf("Expected deserialized t-digest to have a count of 100_000. Got %d", tdigest.count)
+	if tdigest.Count() != 100000 {
+		t.Fatalf("Expected deserialized t-digest to have a count of 100_000. Got %d", tdigest.Count())
 	}
 
 	assertDifferenceSmallerThan(tdigest, 0.5, 0.02, t)
