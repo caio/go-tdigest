@@ -37,8 +37,8 @@ type TDigest struct {
 //
 // By default the digest is constructed with a configuration that
 // should be useful for most use-cases. It comes with compression
-// set to 100 and uses the global random number generator (same
-// as using math/rand top-level functions).
+// set to 100 and uses a local random number generator for
+// performance reasons.
 func New(options ...tdigestOption) (*TDigest, error) {
 	tdigest, err := newWithoutSummary(options...)
 
