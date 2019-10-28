@@ -17,12 +17,12 @@ type tdigestOption func(*TDigest) error
 //
 // Compression must be a value greater of equal to 1, will yield an
 // error otherwise.
-func Compression(compression uint32) tdigestOption { // nolint
+func Compression(compression float64) tdigestOption { // nolint
 	return func(t *TDigest) error {
 		if compression < 1 {
 			return errors.New("Compression should be >= 1")
 		}
-		t.compression = float64(compression)
+		t.compression = compression
 		return nil
 	}
 }

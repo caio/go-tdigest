@@ -682,18 +682,18 @@ func TestClone(t *testing.T) {
 	}
 }
 
-var compressions = []uint32{1, 10, 20, 30, 50, 100}
+var compressions = []float64{1, 10, 20, 30, 50, 100}
 
 func BenchmarkTDigestAddOnce(b *testing.B) {
 	for _, compression := range compressions {
 		compression := compression
-		b.Run(fmt.Sprintf("compression=%d", compression), func(b *testing.B) {
+		b.Run(fmt.Sprintf("compression=%.0f", compression), func(b *testing.B) {
 			benchmarkAddOnce(b, compression)
 		})
 	}
 }
 
-func benchmarkAddOnce(b *testing.B, compression uint32) {
+func benchmarkAddOnce(b *testing.B, compression float64) {
 	t := uncheckedNew(Compression(compression))
 
 	data := make([]float64, b.N)
@@ -717,7 +717,7 @@ func BenchmarkTDigestAddMulti(b *testing.B) {
 		compression := compression
 		for _, n := range []int{10, 100, 1000, 10000} {
 			n := n
-			name := fmt.Sprintf("compression=%d n=%d", compression, n)
+			name := fmt.Sprintf("compression=%.0f n=%d", compression, n)
 			b.Run(name, func(b *testing.B) {
 				benchmarkAddMulti(b, compression, n)
 			})
@@ -725,7 +725,7 @@ func BenchmarkTDigestAddMulti(b *testing.B) {
 	}
 }
 
-func benchmarkAddMulti(b *testing.B, compression uint32, times int) {
+func benchmarkAddMulti(b *testing.B, compression float64, times int) {
 	data := make([]float64, times)
 	for i := 0; i < times; i++ {
 		data[i] = rand.Float64()
@@ -749,7 +749,7 @@ func BenchmarkTDigestMerge(b *testing.B) {
 	for _, compression := range compressions {
 		compression := compression
 		for _, n := range []int{1, 10, 100} {
-			name := fmt.Sprintf("compression=%d n=%d", compression, n)
+			name := fmt.Sprintf("compression=%.0f n=%d", compression, n)
 			b.Run(name, func(b *testing.B) {
 				benchmarkMerge(b, compression, n)
 			})
@@ -757,7 +757,7 @@ func BenchmarkTDigestMerge(b *testing.B) {
 	}
 }
 
-func benchmarkMerge(b *testing.B, compression uint32, times int) {
+func benchmarkMerge(b *testing.B, compression float64, times int) {
 	ts := make([]*TDigest, times)
 	for i := 0; i < times; i++ {
 		ts[i] = randomTDigest(compression)
@@ -782,7 +782,7 @@ func benchmarkMerge(b *testing.B, compression uint32, times int) {
 	}
 }
 
-func randomTDigest(compression uint32) *TDigest {
+func randomTDigest(compression float64) *TDigest {
 	t := uncheckedNew(Compression(compression))
 	n := 20 * int(compression)
 	for i := 0; i < n; i++ {
