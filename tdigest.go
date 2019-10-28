@@ -55,7 +55,7 @@ func newWithoutSummary(options ...tdigestOption) (*TDigest, error) {
 	tdigest := &TDigest{
 		compression: 100,
 		count:       0,
-		rng:         globalRNG{},
+		rng:         newLocalRNG(1),
 	}
 
 	for _, option := range options {
