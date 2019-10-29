@@ -14,12 +14,18 @@ func TestEncodeDecode(t *testing.T) {
 	buf := new(bytes.Buffer)
 
 	for _, i := range testUints {
-		encodeUint(buf, i)
+		err := encodeUint(buf, i)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	readBuf := bytes.NewReader(buf.Bytes())
 	for _, i := range testUints {
-		j, _ := decodeUint(readBuf)
+		j, err := decodeUint(readBuf)
+		if err != nil {
+			t.Error(err)
+		}
 
 		if i != j {
 			t.Errorf("Basic encode/decode failed. Got %d, wanted %d", j, i)
@@ -28,20 +34,24 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func TestSerialization(t *testing.T) {
-	// NOTE Using a high compression value and adding few items
-	//      so we don't end up compressing automatically
-	t1 := New(100)
+	t1, _ := New()
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		_ = t1.Add(rand.Float64())
 	}
 
 	serialized, _ := t1.AsBytes()
 
-	t2, _ := FromBytes(bytes.NewReader(serialized))
-
-	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
-		t.Errorf("Deserialized to something different. t1=%v t2=%v serialized=%v", t1, t2, serialized)
+	t2, err := FromBytes(bytes.NewReader(serialized))
+	if err != nil {
+		t.Fatal(err)
 	}
+	assertSerialization(t, t1, t2)
+
+	err = t2.FromBytes(serialized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertSerialization(t, t1, t2)
 
 	var toBuf []byte
 	toBuf = t1.ToBytes(toBuf)
@@ -58,30 +68,25 @@ func TestSerialization(t *testing.T) {
 		t.Errorf("ToBytes serialized to something else")
 	}
 
-	t3 := &TDigest{}
-	err := t3.FromBytes(serialized)
+	t3, _ := New()
+	err = t3.FromBytes(serialized)
 	if err != nil {
 		t.Error(err)
 	}
-	if t1.count != t3.count || t1.summary.Len() != t3.summary.Len() || t1.compression != t3.compression {
-		t.Errorf("Deserialized to something different. t1=%v t3=%v serialized=%v", t1, t3, serialized)
-	}
-	if !reflect.DeepEqual(t2, t3) {
-		t.Errorf("FromBytes method deserialized to something different from FromBytes function")
-	}
+
+	assertSerialization(t, t1, t3)
 
 	// Mess up t3's internal state, deserialize again.
 	t3.compression = 2
 	t3.count = 1000
-	t3.summary.keys = append(t3.summary.keys, 2.0)
+	t3.summary.means = append(t3.summary.means, 2.0)
 	t3.summary.counts[0] = 0
 	err = t3.FromBytes(serialized)
 	if err != nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(t2, t3) {
-		t.Errorf("FromBytes method deserialized to something different from FromBytes function")
-	}
+
+	assertSerialization(t, t1, t3)
 
 	wrong := serialized[:50]
 	err = t3.FromBytes(wrong)
@@ -95,11 +100,70 @@ func TestSerialization(t *testing.T) {
 	}
 }
 
+func assertSerialization(t *testing.T, t1, t2 *TDigest) {
+	if t1.Count() != t2.Count() ||
+		t1.summary.Len() != t2.summary.Len() ||
+		t1.compression != t2.compression {
+		t.Errorf("Deserialized to something different. t1=%v t2=%v", t1, t2)
+	}
+
+	b1, err := t1.AsBytes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	b2, err := t2.AsBytes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !bytes.Equal(b1, b2) {
+		t.Errorf("Deserialized to something different. b1=%q b2=%q", b1, b2)
+	}
+
+	// t2 is fully functional.
+
+	err = t2.Add(rand.Float64())
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = t2.Compress()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestFromBytesIgnoresCompression(t *testing.T) {
+	digest := uncheckedNew(Compression(42))
+
+	// Instructing FromBytes to use a compression different
+	// than the one in the payload should be ignored
+	payload, err := digest.AsBytes()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	other, err := FromBytes(bytes.NewReader(payload), Compression(100))
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if other.Compression() != 42 {
+		t.Errorf("Expected compression to be 42, got %f", other.Compression())
+	}
+}
+
 func TestLargeSerializaton(t *testing.T) {
-	t1 := New(10)
+	t1, err := New(Compression(10))
+	if err != nil {
+		t.Error(err)
+	}
 
 	for i := 0; i < 100000; i++ {
-		t1.Add(rand.Float64(), 1)
+		t1.AddWeighted(rand.Float64(), 1000000000)
 	}
 
 	serialized, _ := t1.AsBytes()
@@ -113,17 +177,14 @@ func TestLargeSerializaton(t *testing.T) {
 		t.Error(err)
 	}
 
-	var t3 TDigest
+	t3, _ := New()
 	err = t3.FromBytes(serialized2)
 	if err != nil {
 		t.Error(err)
 	}
-	if t1.count != t2.count || t1.summary.Len() != t2.summary.Len() || t1.compression != t2.compression {
-		t.Errorf("Deserialized to something different. t1=%v t2=%v serialized=%v", t1, t2, serialized)
-	}
-	if t1.count != t3.count || t1.summary.Len() != t3.summary.Len() || t1.compression != t3.compression {
-		t.Errorf("Deserialized to something different. t1=%v t3=%v serialized=%v", t1, t3, serialized)
-	}
+
+	assertSerialization(t, t1, t2)
+	assertSerialization(t, t1, t3)
 }
 
 func TestJavaSmallBytesCompat(t *testing.T) {
@@ -157,8 +218,8 @@ func TestJavaSmallBytesCompat(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	if tdigest.count != 100000 {
-		t.Fatalf("Expected deserialized t-digest to have a count of 100_000. Got %d", tdigest.count)
+	if tdigest.Count() != 100000 {
+		t.Fatalf("Expected deserialized t-digest to have a count of 100_000. Got %d", tdigest.Count())
 	}
 
 	assertDifferenceSmallerThan(tdigest, 0.5, 0.02, t)
@@ -173,9 +234,9 @@ func TestJavaSmallBytesCompat(t *testing.T) {
 func BenchmarkAsBytes(b *testing.B) {
 	b.ReportAllocs()
 
-	t1 := New(100)
+	t1, _ := New(Compression(100))
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		t1.Add(rand.Float64())
 	}
 
 	b.ResetTimer()
@@ -188,9 +249,9 @@ func BenchmarkAsBytes(b *testing.B) {
 func BenchmarkToBytes(b *testing.B) {
 	b.ReportAllocs()
 
-	t1 := New(100)
+	t1, _ := New(Compression(100))
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		t1.Add(rand.Float64())
 	}
 
 	b.ResetTimer()
@@ -203,9 +264,9 @@ func BenchmarkToBytes(b *testing.B) {
 func BenchmarkFromBytes(b *testing.B) {
 	b.ReportAllocs()
 
-	t1 := New(100)
+	t1, _ := New(Compression(100))
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		t1.Add(rand.Float64())
 	}
 
 	buf, _ := t1.AsBytes()
@@ -221,9 +282,9 @@ func BenchmarkFromBytes(b *testing.B) {
 func BenchmarkFromBytesMethod(b *testing.B) {
 	b.ReportAllocs()
 
-	t1 := New(100)
+	t1, _ := New(Compression(100))
 	for i := 0; i < 100; i++ {
-		t1.Add(rand.Float64(), 1)
+		t1.Add(rand.Float64())
 	}
 
 	buf, _ := t1.AsBytes()
