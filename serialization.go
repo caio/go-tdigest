@@ -15,54 +15,18 @@ var endianess = binary.BigEndian
 // AsBytes serializes the digest into a byte array so it can be
 // saved to disk or sent over the wire.
 func (t TDigest) AsBytes() ([]byte, error) {
-	buffer := new(bytes.Buffer)
+	// TODO get rid of the (now) useless error
+	return t.ToBytes(make([]byte, t.requiredSize())), nil
+}
 
-	err := binary.Write(buffer, endianess, smallEncoding)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buffer, endianess, t.compression)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buffer, endianess, int32(t.summary.Len()))
-
-	if err != nil {
-		return nil, err
-	}
-
-	var x float64
-	t.summary.ForEach(func(mean float64, count uint64) bool {
-		delta := mean - x
-		x = mean
-		err = binary.Write(buffer, endianess, float32(delta))
-
-		return err == nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	t.summary.ForEach(func(mean float64, count uint64) bool {
-		err = encodeUint(buffer, count)
-		return err == nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return buffer.Bytes(), nil
+func (t *TDigest) requiredSize() int {
+	return 16 + (4 * len(t.summary.means)) + (len(t.summary.counts) * binary.MaxVarintLen64)
 }
 
 // ToBytes serializes into the supplied slice, avoiding allocation if the slice
 // is large enough. The result slice is returned.
 func (t *TDigest) ToBytes(b []byte) []byte {
-	requiredSize := 16 + (4 * len(t.summary.means)) + (len(t.summary.counts) * binary.MaxVarintLen64)
-
+	requiredSize := t.requiredSize()
 	if cap(b) < requiredSize {
 		b = make([]byte, requiredSize)
 	}
