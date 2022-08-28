@@ -19,7 +19,7 @@ and issues if/when they arrive.
 This package uses go modules. Our releases are tagged and signed following
 the [Semantic Versioning][semver] scheme.
 
-    go get github.com/caio/go-tdigest/v3
+    go get github.com/caio/go-tdigest/v4
 
 
 [semver]: http://semver.org/
@@ -33,7 +33,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/caio/go-tdigest/v3"
+	"github.com/caio/go-tdigest/v4"
 )
 
 func main() {

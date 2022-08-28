@@ -1,4 +1,4 @@
-module github.com/caio/go-tdigest/v3
+module github.com/caio/go-tdigest/v4
 
 go 1.18
 
