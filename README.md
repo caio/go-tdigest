@@ -17,18 +17,12 @@ and issues if/when they arrive.
 ## Installation
 
 Our releases are tagged and signed following the [Semantic Versioning][semver]
-scheme. If you are using a dependency manager such as [dep][], the recommended
-way to is go about your business normally:
+scheme.
 
     go get github.com/caio/go-tdigest
 
-Otherwise we recommend to use the following so that you don't risk breaking
-your build because of an API change:
-
-    go get gopkg.in/caio/go-tdigest.v2
 
 [semver]: http://semver.org/
-[dep]: https://github.com/golang/dep
 
 ## Example Usage
 
