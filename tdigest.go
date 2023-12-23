@@ -155,7 +155,7 @@ func boundedWeightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) floa
 // when you are registering a sample that occurred multiple times - the
 // most common value for this is 1.
 //
-// This will emit an error if `value` is NaN of if `count` is zero.
+// This will emit an error if `value` is NaN or if `count` is zero.
 func (t *TDigest) AddWeighted(value float64, count uint64) (err error) {
 	if count == 0 {
 		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
