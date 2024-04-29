@@ -8,16 +8,20 @@
 // ElasticSearch), performance metrics for distributed systems, etc.
 //
 // After you create (and configure, if desired) the digest:
-//     digest, err := tdigest.New(tdigest.Compression(100))
+//
+//	digest, err := tdigest.New(tdigest.Compression(100))
 //
 // You can then use it for registering measurements:
-//     digest.Add(number)
+//
+//	digest.Add(number)
 //
 // Estimating quantiles:
-//     digest.Quantile(0.99)
+//
+//	digest.Quantile(0.99)
 //
 // And merging with another digest:
-//     digest.Merge(otherDigest)
+//
+//	digest.Merge(otherDigest)
 package tdigest
 
 import (
@@ -158,7 +162,7 @@ func boundedWeightedAverage(x1 float64, w1 float64, x2 float64, w2 float64) floa
 // This will emit an error if `value` is NaN or if `count` is zero.
 func (t *TDigest) AddWeighted(value float64, count uint64) (err error) {
 	if count == 0 {
-		return fmt.Errorf("Illegal datapoint <value: %.4f, count: %d>", value, count)
+		return fmt.Errorf("illegal datapoint <value: %.4f, count: %d>", value, count)
 	}
 
 	if t.summary.Len() == 0 {
@@ -174,7 +178,7 @@ func (t *TDigest) AddWeighted(value float64, count uint64) (err error) {
 
 	begin, end := t.findNeighbors(begin, value)
 
-	closest := t.chooseMergeCandidate(begin, end, value, count)
+	closest := t.chooseMergeCandidate(begin, end, count)
 
 	if closest == t.summary.Len() {
 		err = t.summary.Add(value, count)
@@ -366,7 +370,7 @@ func (t TDigest) findNeighbors(start int, value float64) (int, int) {
 	return start, lastNeighbor
 }
 
-func (t TDigest) chooseMergeCandidate(begin, end int, value float64, count uint64) int {
+func (t TDigest) chooseMergeCandidate(begin, end int, count uint64) int {
 	closest := t.summary.Len()
 	sum := t.summary.HeadSum(begin)
 	var n float32

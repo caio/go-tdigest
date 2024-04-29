@@ -69,7 +69,7 @@ func FromBytes(buf *bytes.Reader, options ...tdigestOption) (*TDigest, error) {
 	}
 
 	if encoding != smallEncoding {
-		return nil, fmt.Errorf("Unsupported encoding version: %d", encoding)
+		return nil, fmt.Errorf("unsupported encoding version: %d", encoding)
 	}
 
 	t, err := newWithoutSummary(options...)

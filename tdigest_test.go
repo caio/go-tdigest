@@ -7,13 +7,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/leesper/go_rng"
+	rng "github.com/leesper/go_rng"
 	"gonum.org/v1/gonum/stat"
 )
-
-func init() {
-	rand.Seed(0xDEADBEE)
-}
 
 func uncheckedNew(options ...tdigestOption) *TDigest {
 	t, _ := New(options...)
@@ -792,78 +788,6 @@ func randomTDigest(compression float64) *TDigest {
 		}
 	}
 	return t
-}
-
-var sumSizes = []int{10, 100, 1000, 10000}
-
-func BenchmarkSumLoopSimple(b *testing.B) {
-	for _, size := range sumSizes {
-		size := size
-		b.Run(fmt.Sprint(size), func(b *testing.B) {
-			benchmarkSumLoopSimple(b, size)
-		})
-	}
-}
-
-func benchmarkSumLoopSimple(b *testing.B, size int) {
-	counts := generateCounts(size)
-	indexes := generateIndexes(size)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		for _, idx := range indexes {
-			_ = sumUntilIndexSimple(counts, idx)
-		}
-	}
-}
-
-func BenchmarkSumLoopUnrolled(b *testing.B) {
-	for _, size := range sumSizes {
-		size := size
-		b.Run(fmt.Sprint(size), func(b *testing.B) {
-			benchmarkSumLoopUnrolled(b, size)
-		})
-	}
-}
-
-func benchmarkSumLoopUnrolled(b *testing.B, size int) {
-	counts := generateCounts(size)
-	indexes := generateIndexes(size)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		for _, idx := range indexes {
-			_ = sumUntilIndex(counts, idx)
-		}
-	}
-}
-
-func generateCounts(size int) []uint64 {
-	counts := make([]uint64, size)
-	for i := 0; i < size; i++ {
-		counts[i] = rand.Uint64()
-	}
-	return counts
-}
-
-func generateIndexes(size int) []int {
-	const num = 100
-
-	indexes := make([]int, num)
-	for i := 0; i < num; i++ {
-		indexes[i] = rand.Intn(size)
-	}
-	return indexes
-}
-
-func sumUntilIndexSimple(counts []uint64, idx int) uint64 {
-	var sum uint64
-	for _, c := range counts {
-		sum += uint64(c)
-	}
-	return sum
 }
 
 // Pathological ordered-input case.

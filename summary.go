@@ -25,7 +25,7 @@ func (s *summary) Len() int {
 
 func (s *summary) Add(key float64, value uint64) error {
 	if math.IsNaN(key) {
-		return fmt.Errorf("Key must not be NaN")
+		return fmt.Errorf("key must not be NaN")
 	}
 	if value == 0 {
 		return fmt.Errorf("Count must be >0")
