@@ -455,7 +455,7 @@ func shouldPanic(f func(), t *testing.T, message string) {
 	defer func() {
 		tryRecover := recover()
 		if tryRecover == nil {
-			t.Errorf(message)
+			t.Error(message)
 		}
 	}()
 	f()

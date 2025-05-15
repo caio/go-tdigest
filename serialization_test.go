@@ -209,13 +209,13 @@ func TestJavaSmallBytesCompat(t *testing.T) {
 	tdigestAsBytes, err := base64.StdEncoding.DecodeString(serializedJavaTDigestB64)
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	tdigest, err := FromBytes(bytes.NewReader(tdigestAsBytes))
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	if tdigest.Count() != 100000 {
