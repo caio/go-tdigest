@@ -112,7 +112,7 @@ func FromBytes(buf *bytes.Reader, options ...tdigestOption) (*TDigest, error) {
 	}
 
 	for i := 0; i < int(numCentroids); i++ {
-		count, err := decodeUint(buf)
+		count, err := binary.ReadUvarint(buf)
 		if err != nil {
 			return nil, err
 		}
@@ -158,6 +158,9 @@ func (t *TDigest) FromBytes(buf []byte) error {
 	}
 	t.summary.means = t.summary.means[:numCentroids]
 	t.summary.counts = t.summary.counts[:numCentroids]
+	if t.rng == nil {
+		t.rng = newLocalRNG(1) // sensible default as in newWithoutSummary
+	}
 
 	idx := 16
 	var x float64
@@ -184,19 +187,4 @@ func (t *TDigest) FromBytes(buf []byte) error {
 		return errors.New("buffer has unread data")
 	}
 	return nil
-}
-
-func encodeUint(buf *bytes.Buffer, n uint64) error {
-	var b [binary.MaxVarintLen64]byte
-
-	l := binary.PutUvarint(b[:], n)
-
-	_, err := buf.Write(b[:l])
-
-	return err
-}
-
-func decodeUint(buf *bytes.Reader) (uint64, error) {
-	v, err := binary.ReadUvarint(buf)
-	return v, err
 }
