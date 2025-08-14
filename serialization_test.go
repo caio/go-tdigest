@@ -3,6 +3,7 @@ package tdigest
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/binary"
 	"math"
 	"math/rand"
 	"reflect"
@@ -13,8 +14,10 @@ func TestEncodeDecode(t *testing.T) {
 	testUints := []uint64{0, 10, 100, 1000, 10000, 65535, 2147483647, 2 * math.MaxUint32}
 	buf := new(bytes.Buffer)
 
+	var b [binary.MaxVarintLen64]byte
 	for _, i := range testUints {
-		err := encodeUint(buf, i)
+		l := binary.PutUvarint(b[:], i)
+		_, err := buf.Write(b[:l])
 		if err != nil {
 			t.Error(err)
 		}
@@ -22,7 +25,7 @@ func TestEncodeDecode(t *testing.T) {
 
 	readBuf := bytes.NewReader(buf.Bytes())
 	for _, i := range testUints {
-		j, err := decodeUint(readBuf)
+		j, err := binary.ReadUvarint(readBuf)
 		if err != nil {
 			t.Error(err)
 		}
