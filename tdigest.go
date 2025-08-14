@@ -342,6 +342,13 @@ func (t *TDigest) Clone() *TDigest {
 	}
 }
 
+// Reset resets a TDigest to its initial state, keeping its capacity.
+func (t *TDigest) Reset() {
+	t.summary.Reset()
+	t.count = 0
+}
+
+
 func interpolate(x, x0, x1 float64) float64 {
 	return (x - x0) / (x1 - x0)
 }

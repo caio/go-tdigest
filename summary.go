@@ -161,6 +161,11 @@ func (s *summary) Clone() *summary {
 	}
 }
 
+func (s *summary) Reset() {
+	s.means = s.means[:0]
+	s.counts = s.counts[:0]
+}
+
 // Randomly shuffles summary contents, so they can be added to another summary
 // with being pathological. Renders summary invalid.
 func (s *summary) shuffle(rng RNG) {
