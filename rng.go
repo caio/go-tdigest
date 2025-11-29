@@ -9,16 +9,7 @@ import (
 type RNG interface {
 	Float32() float32
 	Intn(int) int
-}
-
-type globalRNG struct{}
-
-func (r globalRNG) Float32() float32 {
-	return rand.Float32()
-}
-
-func (r globalRNG) Intn(i int) int {
-	return rand.Intn(i)
+	Clone() RNG
 }
 
 type localRNG struct {
@@ -37,4 +28,8 @@ func (r *localRNG) Float32() float32 {
 
 func (r *localRNG) Intn(i int) int {
 	return r.localRand.Intn(i)
+}
+
+func (r *localRNG) Clone() RNG {
+	return newLocalRNG(r.localRand.Int63())
 }

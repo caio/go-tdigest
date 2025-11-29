@@ -339,12 +339,16 @@ func (t *TDigest) CDF(value float64) float64 {
 }
 
 // Clone returns a deep copy of a TDigest.
+//
+// Notice that the provided RNG (via options.LocalRandomNumberGenerator)
+// does NOT clone its state - a brand new source is created. Users
+// must implement their own RNG if they want something different.
 func (t *TDigest) Clone() *TDigest {
 	return &TDigest{
 		summary:     t.summary.Clone(),
 		compression: t.compression,
 		count:       t.count,
-		rng:         t.rng,
+		rng:         t.rng.Clone(),
 	}
 }
 
@@ -353,7 +357,6 @@ func (t *TDigest) Reset() {
 	t.summary.Reset()
 	t.count = 0
 }
-
 
 func interpolate(x, x0, x1 float64) float64 {
 	return (x - x0) / (x1 - x0)
