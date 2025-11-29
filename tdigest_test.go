@@ -802,6 +802,19 @@ func BenchmarkAddOrdered(b *testing.B) {
 	}
 }
 
+func BenchmarkMergeEmpty(b *testing.B) {
+	t, _ := New(Compression(100))
+	for n := 0; n < 1000; n++ {
+		t.AddWeighted(rand.Float64(), uint64(rand.Intn(100)))
+	}
+
+	empty, _ := New(Compression(100))
+	for b.Loop() {
+		empty.Reset()
+		empty.Merge(t)
+	}
+}
+
 func BenchmarkMerge(b *testing.B) {
 	b.ReportAllocs()
 

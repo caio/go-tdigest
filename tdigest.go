@@ -264,6 +264,12 @@ func (t *TDigest) Merge(other *TDigest) (err error) {
 		return nil
 	}
 
+	if t.summary.Len() == 0 && other.compression == t.compression {
+		t.summary = other.summary.Clone()
+		t.count = other.count
+		return nil
+	}
+
 	other.summary.Perm(t.rng, func(mean float64, count uint64) bool {
 		err = t.AddWeighted(mean, count)
 		return err == nil
