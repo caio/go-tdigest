@@ -6,7 +6,7 @@ quantile approximation.
 This package provides an implementation of Ted Dunning's t-digest data
 structure in Go.
 
-* [Documentation](https://pkg.go.dev/github.com/caio/go-tdigest/v4)
+* [Documentation](https://pkg.go.dev/github.com/caio/go-tdigest/v5)
 * [Issue tracker](https://github.com/caio/go-tdigest/issues)
 
 ## Project Status
@@ -19,7 +19,7 @@ and issues if/when they arrive.
 This package uses go modules. Our releases are tagged and signed following
 the [Semantic Versioning][semver] scheme.
 
-    go get github.com/caio/go-tdigest/v4
+    go get github.com/caio/go-tdigest/v5
 
 
 [semver]: http://semver.org/
@@ -33,7 +33,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/caio/go-tdigest/v4"
+	"github.com/caio/go-tdigest/v5"
 )
 
 func main() {
