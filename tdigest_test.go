@@ -625,6 +625,160 @@ func trimmedMean(ff []float64, p1, p2 float64) float64 {
 	return sum / float64(count)
 }
 
+func TestValueAtRankIsExactForSingletons(t *testing.T) {
+	// With fewer samples than the compression nothing gets merged, so
+	// every rank has to map to the exact order statistic, ties included
+	tdigest := uncheckedNew(Compression(100))
+
+	data := make([]float64, 100)
+	for i := range data {
+		data[i] = float64((i * 37) % 23)
+		_ = tdigest.Add(data[i])
+	}
+	sort.Float64s(data)
+
+	for rank := uint64(1); rank <= tdigest.Count(); rank++ {
+		result := tdigest.ValueAtRank(rank)
+		if result != data[rank-1] {
+			t.Errorf("Expected ValueAtRank(%d) = %.0f, but got %.4f", rank, data[rank-1], result)
+		}
+	}
+}
+
+func TestQuantileDiscreteDoesNotInterpolateAcrossGaps(t *testing.T) {
+	// Latency-like data: 96 fast samples, 6 timeouts and nothing in
+	// between. The 95th percentile is the 97th smallest sample, which
+	// is a timeout. Interpolating between the slowest fast sample and
+	// the first timeout yields a value that was never observed.
+	tdigest := uncheckedNew()
+
+	for i := 0; i < 96; i++ {
+		_ = tdigest.Add(float64(i % 8))
+	}
+	for i := 0; i < 6; i++ {
+		_ = tdigest.Add(1500)
+	}
+
+	result := tdigest.QuantileDiscrete(0.95)
+	if result != 1500 {
+		t.Errorf("Expected QuantileDiscrete(0.95) = 1500, but got %.4f", result)
+	}
+
+	result = tdigest.ValueAtRank(96)
+	if result != 7 {
+		t.Errorf("Expected ValueAtRank(96) = 7, but got %.4f", result)
+	}
+
+	result = tdigest.ValueAtRank(97)
+	if result != 1500 {
+		t.Errorf("Expected ValueAtRank(97) = 1500, but got %.4f", result)
+	}
+}
+
+func TestQuantileDiscreteSingletonInACrowd(t *testing.T) {
+	tdigest := uncheckedNew()
+	for i := 0; i < 10000; i++ {
+		_ = tdigest.Add(10)
+	}
+	_ = tdigest.Add(20)
+	_ = tdigest.Compress()
+
+	// Includes the 0.999 case that TestSingletonInACrowd has to skip:
+	// the 9991st smallest sample out of 10001 is still a 10
+	for _, q := range []float64{0, 0.5, 0.8, 0.9, 0.99, 0.999} {
+		result := tdigest.QuantileDiscrete(q)
+		if result != 10 {
+			t.Errorf("Expected QuantileDiscrete(%.3f) = 10, but got %.4f (size=%d)", q, result, tdigest.summary.Len())
+		}
+	}
+
+	result := tdigest.QuantileDiscrete(1)
+	if result != 20 {
+		t.Errorf("Expected QuantileDiscrete(1) = 20, but got %.4f (size=%d)", result, tdigest.summary.Len())
+	}
+}
+
+func TestValueAtRankReturnsCentroidMeans(t *testing.T) {
+	// Low compression and enough samples for centroids to hold more
+	// than one of them
+	tdigest := uncheckedNew(Compression(10))
+	for i := 0; i < 10000; i++ {
+		_ = tdigest.Add(rand.Float64())
+	}
+
+	means := make(map[float64]bool)
+	first, last := math.NaN(), math.NaN()
+	tdigest.ForEachCentroid(func(mean float64, count uint64) bool {
+		if len(means) == 0 {
+			first = mean
+		}
+		last = mean
+		means[mean] = true
+		return true
+	})
+
+	if len(means) >= int(tdigest.Count()) {
+		t.Fatalf("Expected merged centroids, but got %d of them for %d samples", len(means), tdigest.Count())
+	}
+
+	previous := math.Inf(-1)
+	for rank := uint64(1); rank <= tdigest.Count(); rank++ {
+		result := tdigest.ValueAtRank(rank)
+		if !means[result] {
+			t.Fatalf("Expected ValueAtRank(%d) to be the mean of a centroid, but got %.6f", rank, result)
+		}
+		if result < previous {
+			t.Fatalf("Expected ValueAtRank(%d) >= %.6f, but got %.6f", rank, previous, result)
+		}
+		previous = result
+	}
+
+	if result := tdigest.ValueAtRank(1); result != first {
+		t.Errorf("Expected ValueAtRank(1) = %.6f, but got %.6f", first, result)
+	}
+
+	if result := tdigest.ValueAtRank(tdigest.Count()); result != last {
+		t.Errorf("Expected ValueAtRank(%d) = %.6f, but got %.6f", tdigest.Count(), last, result)
+	}
+}
+
+func TestValueAtRankCornerCases(t *testing.T) {
+	tdigest := uncheckedNew()
+
+	if !math.IsNaN(tdigest.ValueAtRank(1)) {
+		t.Error("ValueAtRank on an empty digest should be NaN")
+	}
+
+	if !math.IsNaN(tdigest.QuantileDiscrete(0.5)) {
+		t.Error("QuantileDiscrete on an empty digest should be NaN")
+	}
+
+	_ = tdigest.Add(42)
+
+	for _, q := range []float64{0, 0.5, 1} {
+		result := tdigest.QuantileDiscrete(q)
+		if result != 42 {
+			t.Errorf("Expected QuantileDiscrete(%.1f) = 42, but got %.4f", q, result)
+		}
+	}
+
+	shouldPanic(func() {
+		tdigest.ValueAtRank(0)
+	}, t, "ValueAtRank(0) should panic!")
+
+	shouldPanic(func() {
+		tdigest.ValueAtRank(2)
+	}, t, "ValueAtRank > Count() should panic!")
+
+	shouldPanic(func() {
+		tdigest.QuantileDiscrete(-42)
+	}, t, "QuantileDiscrete < 0 should panic!")
+
+	shouldPanic(func() {
+		tdigest.QuantileDiscrete(42)
+	}, t, "QuantileDiscrete > 1 should panic!")
+}
+
 func TestClone(t *testing.T) {
 	seed := func(td *TDigest) {
 		for i := 0; i < 100; i++ {

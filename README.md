@@ -50,6 +50,30 @@ func main() {
 }
 ```
 
+## Discrete Quantiles
+
+`Quantile` interpolates between neighboring centroids, which is what you
+want for smooth distributions. For discrete data, or data with gaps (say,
+latencies with a cluster of timeouts), an interpolated estimate can be a
+value that was never observed. `QuantileDiscrete` and `ValueAtRank` return
+the mean of the centroid that holds the requested rank instead, so the
+result never falls between two centroids:
+
+```go
+t, _ := tdigest.New()
+
+for i := 0; i < 96; i++ {
+	t.Add(5) // fast responses
+}
+for i := 0; i < 6; i++ {
+	t.Add(1500) // timeouts
+}
+
+t.Quantile(0.95)         // 1425.25: nothing took anywhere near that
+t.QuantileDiscrete(0.95) // 1500: the 97th smallest sample out of 102
+t.ValueAtRank(97)        // 1500: same thing, with the rank given exactly
+```
+
 ## Configuration
 
 You can configure your digest upon creation with options documented

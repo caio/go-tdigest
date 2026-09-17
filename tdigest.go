@@ -139,6 +139,67 @@ func (t *TDigest) Quantile(q float64) float64 {
 	// unreachable
 }
 
+// ValueAtRank returns the mean of the centroid that holds the sample
+// with the given rank, where rank 1 is the smallest sample and rank
+// Count() is the biggest one.
+//
+// Unlike Quantile this does not interpolate, so the result is never a
+// value that sits between two centroids. That matters for discrete data
+// and for distributions with gaps (think latencies with a cluster of
+// timeouts), where an interpolated estimate can be a value that was
+// never observed. When the centroid holds a single sample, or several
+// samples of the same value, the result is exact.
+//
+// Values of rank must be between 1 and Count() (inclusive), will panic
+// otherwise. Returns NaN for an empty digest.
+func (t *TDigest) ValueAtRank(rank uint64) float64 {
+	if t.summary.Len() == 0 {
+		return math.NaN()
+	}
+
+	if rank < 1 || rank > t.count {
+		panic("rank must be between 1 and Count() (inclusive)")
+	}
+
+	last := t.summary.Len() - 1
+	var seen uint64
+	for i := 0; i < last; i++ {
+		seen += t.summary.Count(i)
+		if seen >= rank {
+			return t.summary.Mean(i)
+		}
+	}
+	return t.summary.Mean(last)
+}
+
+// QuantileDiscrete returns the desired percentile estimation without
+// interpolating between centroids.
+//
+// It follows the nearest-rank definition of a percentile (the inverse
+// of the empirical CDF): the result is ValueAtRank for the rank
+// ceil(q * Count()). The rank is computed in floating point, so callers
+// that need a specific rank should compute it themselves and use
+// ValueAtRank instead.
+//
+// Values of q must be between 0 and 1 (inclusive), will panic otherwise.
+func (t *TDigest) QuantileDiscrete(q float64) float64 {
+	if q < 0 || q > 1 {
+		panic("q must be between 0 and 1 (inclusive)")
+	}
+
+	if t.summary.Len() == 0 {
+		return math.NaN()
+	}
+
+	rank := uint64(math.Ceil(q * float64(t.count)))
+	if rank < 1 {
+		rank = 1
+	} else if rank > t.count {
+		rank = t.count
+	}
+	return t.ValueAtRank(rank)
+}
+
 // boundedWeightedAverage computes the weighted average of two
 // centroids guaranteeing that the result will be between x1 and x2,
 // inclusive.
